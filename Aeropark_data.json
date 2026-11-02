@@ -5217,33 +5217,7 @@
     "F-GNSN": "BE58",
     "FHYKE": "PC12"
   },
-  "aeropark_parked": {
-    "A3": {
-      "type": "A10",
-      "reg": "NO-REG",
-      "category": "avion",
-      "specs": {
-        "cat": "avion",
-        "span": 17.53,
-        "length": 16.25,
-        "mtow": 22.7,
-        "mototok": "Non renseigné",
-        "gpu": "Non renseigné",
-        "hydro": "N/A",
-        "parts": "",
-        "incompatiblePush": [
-          "TPX 100",
-          "TPX 200"
-        ],
-        "lektro": "NIL"
-      },
-      "arr": "2026-11-02T13:23",
-      "dep": "N/A",
-      "autonomous": true,
-      "d5Orientation": null,
-      "comment": ""
-    }
-  },
+  "aeropark_parked": {},
   "aeropark_history": [
     {
       "type": "A10",
@@ -5271,6 +5245,33 @@
       "comment": "",
       "stand": "A6",
       "actualDeparture": "2026-11-02T13:32"
+    },
+    {
+      "type": "A10",
+      "reg": "NO-REG",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 17.53,
+        "length": 16.25,
+        "mtow": 22.7,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": [
+          "TPX 100",
+          "TPX 200"
+        ],
+        "lektro": "NIL"
+      },
+      "arr": "2026-11-02T13:23",
+      "dep": "N/A",
+      "autonomous": true,
+      "d5Orientation": null,
+      "comment": "",
+      "stand": "A3",
+      "actualDeparture": "2026-11-02T13:33"
     }
   ]
 }
