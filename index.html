@@ -414,33 +414,34 @@
     localStorage.setItem('parkedAircraft', JSON.stringify(parkedAircraft)); 
     updateCondemnedMap(); 
     saveToGitHub(); // <-- Envoi immédiat et automatique vers le fichier distant GitHub
-}; 
-        };
+};
 
-        const saveHistory = () => { 
-            localStorage.setItem('aircraftHistory', JSON.stringify(aircraftHistory)); 
-            saveToGitHub(); 
-        };
+const saveHistory = () => { 
+    localStorage.setItem('aircraftHistory', JSON.stringify(aircraftHistory)); 
+    saveToGitHub(); 
+};
 
-        const saveRegDatabase = () => { 
-            localStorage.setItem('regDatabase', JSON.stringify(regDatabase)); 
-            saveToGitHub(); 
-        };
+const saveRegDatabase = () => { 
+    localStorage.setItem('regDatabase', JSON.stringify(regDatabase)); 
+    saveToGitHub(); 
+};
 
-        function initApron() {
-            const svgGroup = $('tarmac-stands-svg-group');
-            if (!svgGroup) return;
-            svgGroup.innerHTML = '';
-            for (const [sId, specs] of Object.entries(AppConfig.stands)) {
-                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-                g.setAttribute('id', `stand-group-${sId}`); g.setAttribute('onclick', `clickStand('${sId}')`);
-                g.addEventListener('mouseenter', (e) => handleTooltipEnter(e, sId)); g.addEventListener('mousemove', moveTooltip); g.addEventListener('mouseleave', hideTooltip);
+function initApron() {
+    const svgGroup = $('tarmac-stands-svg-group');
+    if (!svgGroup) return;
+    svgGroup.innerHTML = '';
+    for (const [sId, specs] of Object.entries(AppConfig.stands)) {
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('id', `stand-group-${sId}`); g.setAttribute('onclick', `clickStand('${sId}')`);
+        g.addEventListener('mouseenter', (e) => handleTooltipEnter(e, sId)); 
+        g.addEventListener('mousemove', moveTooltip); 
+        g.addEventListener('mouseleave', hideTooltip);
 
-                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-                rect.setAttribute('id', `stand-rect-${sId}`);
-                rect.setAttribute('x', specs.x); rect.setAttribute('y', specs.y); 
-                rect.setAttribute('width', specs.w); rect.setAttribute('height', specs.h); rect.setAttribute('rx', specs.rx || 4);
-                g.appendChild(rect);
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('id', `stand-rect-${sId}`);
+        rect.setAttribute('x', specs.x); rect.setAttribute('y', specs.y); 
+        rect.setAttribute('width', specs.w); rect.setAttribute('height', specs.h); rect.setAttribute('rx', specs.rx || 4);
+        g.appendChild(rect);
 
                 const iconLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
                 iconLayer.setAttribute('id', `stand-icon-${sId}`); iconLayer.setAttribute('pointer-events', 'none');
@@ -540,14 +541,17 @@
         function hideTooltip() { $('custom-tooltip').style.display = 'none'; }
         
         function launchAppFullscreen() {
-    // 1. On tente d'activer le plein écran de manière sécurisée (ignoré silencieusement si bloqué par le navigateur)
     const el = document.documentElement;
     const rfs = el.requestFullscreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
     if (rfs) {
-        rfs.call(el).catch(err => {
-            console.warn("Plein écran non autorisé par le navigateur:", err);
-        });
+        rfs.call(el).catch(err => console.warn("Plein écran refusé :", err));
     }
+    const launcher = $('app-launcher-overlay');
+    if (launcher) {
+        launcher.style.opacity = '0';
+        setTimeout(() => launcher.remove(), 300);
+    }
+}
     
     // 2. On supprime l'overlay de démarrage de manière garantie
     const launcher = $('app-launcher-overlay');
@@ -556,7 +560,6 @@
         launcher.style.pointerEvents = 'none'; // Désactive les clics immédiatement
         setTimeout(() => launcher.remove(), 300);
     }
-}
 
         function closeApp() {
             if (confirm("Voulez-vous vraiment fermer l'application ?")) {
@@ -1391,35 +1394,6 @@
     } catch (error) {
         console.warn("Synchro ignorée ou mode hors-ligne", error);
     }
-}async function loadAeroparkDataFromGitHub(isSilent = false) {
-    try {
-        const response = await fetch(githubApiUrl, {
-            headers: { "Authorization": `token ${GITHUB_TOKEN}` },
-            cache: "no-store"
-        });
-        if (!response.ok) throw new Error("Erreur de chargement réseau");
-        
-        const fileMeta = await response.json();
-        // Décodage UTF-8 robuste pour éviter les erreurs de caractères
-        const remoteData = JSON.parse(decodeURIComponent(escape(atob(fileMeta.content.replace(/\s/g, "")))));
-        
-        if (remoteData.AppConfig) AppConfig = remoteData.AppConfig;
-        if (remoteData.regDatabase) regDatabase = remoteData.regDatabase;
-        if (remoteData.parkedAircraft) parkedAircraft = remoteData.parkedAircraft;
-        if (remoteData.aircraftHistory) aircraftHistory = remoteData.aircraftHistory;
-        
-        updateCondemnedMap();
-        initApron();
-        updateApronDisplay();
-
-        if (!isSilent) {
-            updateTZUI();
-            switchTab('sidebar', 'aircraft');
-            setDefaultDates();
-        }
-    } catch (error) {
-        console.warn("Synchro ignorée ou mode hors-ligne", error);
-    }
 }
 
         async function saveToGitHub() {
@@ -1458,30 +1432,30 @@
         }
 
         // --- CORRECTION DU CHARGEMENT INITIAL (DOMContentLoaded unique et robuste) ---
+        // --- CORRECTION DU CHARGEMENT INITIAL (DOMContentLoaded unique et robuste) ---
         document.addEventListener('DOMContentLoaded', async () => {
-    updateTZUI();
-    updateCondemnedMap();
-    
-    // 1. On télécharge d'abord les données distantes depuis GitHub
-    await loadAeroparkDataFromGitHub();
-    
-    // 2. Ensuite seulement, on dessine le tarmac et l'interface
-    initApron();
-    switchTab('sidebar', 'aircraft');
-    updateApronDisplay();
-    setDefaultDates();
-});
+            updateTZUI();
+            updateCondemnedMap();
 
-            // 2. Lance la récupération des données distantes en arrière-plan
+            // 1. On télécharge d'abord les données distantes depuis GitHub
+            await loadAeroparkDataFromGitHub();
+
+            // 2. Ensuite seulement, on dessine le tarmac et l'interface
+            initApron();
+            switchTab('sidebar', 'aircraft');
+            updateApronDisplay();
+            setDefaultDates();
+
+            // 3. Lance la récupération des données distantes en arrière-plan
             loadAeroparkDataFromGitHub();
-            
-            // 3. Synchronisation en direct toutes les 10 secondes
+
+            // 4. Synchronisation en direct toutes les 10 secondes
             setInterval(() => {
-    const isModalOpen = !document.getElementById('modal-overlay').classList.contains('hidden');
-    if (!isModalOpen) {
-        loadAeroparkDataFromGitHub(true); // Chargement silencieux en arrière-plan
-    }
-}, 10000);
+                const isModalOpen = !document.getElementById('modal-overlay').classList.contains('hidden');
+                if (!isModalOpen) {
+                    loadAeroparkDataFromGitHub(true); // Chargement silencieux en arrière-plan
+                }
+            }, 10000);
         });
     </script>
 </body>
