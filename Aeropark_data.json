@@ -5218,8 +5218,9 @@
     "FHYKE": "PC12",
     "F-HSTR": "DA40"
   },
-  "parkedAircraft": {
-    "D2": {
+  "parkedAircraft": {},
+  "aircraftHistory": [
+    {
       "type": "DA40",
       "reg": "F-HSTR",
       "category": "avion",
@@ -5239,8 +5240,9 @@
       "dep": "N/A",
       "autonomous": false,
       "d5Orientation": null,
-      "comment": ""
+      "comment": "",
+      "stand": "D2",
+      "actualDeparture": "2026-11-02T16:28"
     }
-  },
-  "aircraftHistory": []
+  ]
 }
