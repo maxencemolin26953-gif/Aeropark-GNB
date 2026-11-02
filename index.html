@@ -1374,14 +1374,28 @@ function initApron() {
         if (!response.ok) throw new Error("Erreur de chargement réseau");
         
         const fileMeta = await response.json();
-        // Décodage UTF-8 robuste pour éviter les erreurs de caractères
+        // Décodage UTF-8 robuste du contenu distant
         const remoteData = JSON.parse(decodeURIComponent(escape(atob(fileMeta.content.replace(/\s/g, "")))));
         
-        if (remoteData.AppConfig) AppConfig = remoteData.AppConfig;
-        if (remoteData.regDatabase) regDatabase = remoteData.regDatabase;
-        if (remoteData.parkedAircraft) parkedAircraft = remoteData.parkedAircraft;
-        if (remoteData.aircraftHistory) aircraftHistory = remoteData.aircraftHistory;
+        // Injection prioritaire des données distantes dans l'application
+        if (remoteData.AppConfig) {
+            AppConfig = remoteData.AppConfig;
+            localStorage.setItem('AppConfig', JSON.stringify(AppConfig));
+        }
+        if (remoteData.regDatabase) {
+            regDatabase = remoteData.regDatabase;
+            localStorage.setItem('regDatabase', JSON.stringify(regDatabase));
+        }
+        if (remoteData.parkedAircraft) {
+            parkedAircraft = remoteData.parkedAircraft;
+            localStorage.setItem('parkedAircraft', JSON.stringify(parkedAircraft));
+        }
+        if (remoteData.aircraftHistory) {
+            aircraftHistory = remoteData.aircraftHistory;
+            localStorage.setItem('aircraftHistory', JSON.stringify(aircraftHistory));
+        }
         
+        // Mise à jour immédiate de l'affichage
         updateCondemnedMap();
         initApron();
         updateApronDisplay();
@@ -1392,7 +1406,7 @@ function initApron() {
             setDefaultDates();
         }
     } catch (error) {
-        console.warn("Synchro ignorée ou mode hors-ligne", error);
+        console.warn("Synchro ignorée ou mode hors-ligne, utilisation du cache local", error);
     }
 }
 
