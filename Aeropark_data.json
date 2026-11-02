@@ -5267,6 +5267,31 @@
       "autonomous": false,
       "d5Orientation": null,
       "comment": ""
+    },
+    "A21": {
+      "type": "C510",
+      "reg": "NO-REG",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 13.17,
+        "length": 12.37,
+        "mtow": 3.9,
+        "mototok": "Palettes simples",
+        "gpu": "28V",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": [
+          "TPX 100",
+          "TPX 200"
+        ],
+        "lektro": "C1/C2"
+      },
+      "arr": "2026-11-02T16:17",
+      "dep": "N/A",
+      "autonomous": false,
+      "d5Orientation": null,
+      "comment": ""
     }
   },
   "aircraftHistory": []
