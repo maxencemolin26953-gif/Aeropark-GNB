@@ -1,29 +1,5 @@
 {
-  "parkedAircraft": {
-    "A5": {
-      "type": "LJ55",
-      "reg": "D-CGBR",
-      "category": "avion",
-      "specs": {
-        "cat": "avion",
-        "span": 13.35,
-        "length": 16.79,
-        "mtow": 8.8,
-        "mototok": "Non renseigné",
-        "gpu": "Non renseigné",
-        "lektro": "NIL",
-        "hydro": "N/A",
-        "parts": "",
-        "incompatiblePush": []
-      },
-      "arr": "2026-11-02T09:47",
-      "dep": "N/A",
-      "autonomous": true,
-      "d5Orientation": null,
-      "comment": ""
-    }
-  },
-  "AppConfig": {
+  "aeropark_config": {
     "stands": {
       "A2": {
         "spanMax": 28.8,
@@ -5233,13 +5209,65 @@
     },
     "timezone": "UTC+1"
   },
-  "aircraftHistory": [],
-  "regDatabase": {
+  "aeropark_regs": {
     "D-CGBR": "LJ55",
     "D-INFO": "PAY2",
     "YL-UAG": "E190",
     "OE-LUX": "GLF4",
     "F-GNSN": "BE58",
     "FHYKE": "PC12"
-  }
+  },
+  "aeropark_parked": {
+    "A3": {
+      "type": "A10",
+      "reg": "NO-REG",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 17.53,
+        "length": 16.25,
+        "mtow": 22.7,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": [
+          "TPX 100",
+          "TPX 200"
+        ],
+        "lektro": "NIL"
+      },
+      "arr": "2026-11-02T13:23",
+      "dep": "N/A",
+      "autonomous": true,
+      "d5Orientation": null,
+      "comment": ""
+    },
+    "A6": {
+      "type": "A10",
+      "reg": "NO-REG",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 17.53,
+        "length": 16.25,
+        "mtow": 22.7,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": [
+          "TPX 100",
+          "TPX 200"
+        ],
+        "lektro": "NIL"
+      },
+      "arr": "2026-11-02T13:32",
+      "dep": "N/A",
+      "autonomous": false,
+      "d5Orientation": null,
+      "comment": ""
+    }
+  },
+  "aeropark_history": []
 }
