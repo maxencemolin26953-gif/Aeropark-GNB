@@ -5267,8 +5267,10 @@
       "autonomous": false,
       "d5Orientation": null,
       "comment": ""
-    },
-    "A21": {
+    }
+  },
+  "aircraftHistory": [
+    {
       "type": "C510",
       "reg": "NO-REG",
       "category": "avion",
@@ -5291,8 +5293,9 @@
       "dep": "N/A",
       "autonomous": false,
       "d5Orientation": null,
-      "comment": "eau ok "
+      "comment": "eau ok ",
+      "stand": "A21",
+      "actualDeparture": "2026-11-02T16:18"
     }
-  },
-  "aircraftHistory": []
+  ]
 }
