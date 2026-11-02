@@ -540,12 +540,23 @@
         function hideTooltip() { $('custom-tooltip').style.display = 'none'; }
         
         function launchAppFullscreen() {
-            const el = document.documentElement;
-            const rfs = el.requestFullscreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-            if (rfs) rfs.call(el).catch(()=>{});
-            const launcher = $('app-launcher-overlay');
-            if (launcher) { launcher.style.opacity = '0'; setTimeout(() => launcher.remove(), 300); }
-        }
+    // 1. On tente d'activer le plein écran de manière sécurisée (ignoré silencieusement si bloqué par le navigateur)
+    const el = document.documentElement;
+    const rfs = el.requestFullscreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+    if (rfs) {
+        rfs.call(el).catch(err => {
+            console.warn("Plein écran non autorisé par le navigateur:", err);
+        });
+    }
+    
+    // 2. On supprime l'overlay de démarrage de manière garantie
+    const launcher = $('app-launcher-overlay');
+    if (launcher) {
+        launcher.style.opacity = '0';
+        launcher.style.pointerEvents = 'none'; // Désactive les clics immédiatement
+        setTimeout(() => launcher.remove(), 300);
+    }
+}
 
         function closeApp() {
             if (confirm("Voulez-vous vraiment fermer l'application ?")) {
