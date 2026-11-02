@@ -336,10 +336,10 @@
             }
         };
 
-        let AppConfig = JSON.parse(localStorage.getItem('aeropark_config')) || defaultConfig;
-        let regDatabase = JSON.parse(localStorage.getItem('aeropark_regs')) || {};
-        let parkedAircraft = JSON.parse(localStorage.getItem('aeropark_parked')) || {};
-        let aircraftHistory = JSON.parse(localStorage.getItem('aeropark_history')) || [];
+        let AppConfig = JSON.parse(localStorage.getItem('AppConfig')) || defaultConfig;
+        let regDatabase = JSON.parse(localStorage.getItem('regDatabase')) || {};
+        let parkedAircraft = JSON.parse(localStorage.getItem('parkedAircraft')) || {};
+        let aircraftHistory = JSON.parse(localStorage.getItem('aircraftHistory')) || [];
         
         if (!AppConfig.timezone) AppConfig.timezone = 'UTC+1';
 
@@ -404,31 +404,27 @@
         };
 
         const saveConfig = () => { 
-            localStorage.setItem('aeropark_config', JSON.stringify(AppConfig)); 
+            localStorage.setItem('AppConfig', JSON.stringify(AppConfig)); 
             updateCondemnedMap(); 
             updateApronDisplay(); 
             saveToGitHub(); 
         };
 
         const saveParked = () => { 
-            localStorage.setItem('aeropark_parked', JSON.stringify(parkedAircraft)); 
+            localStorage.setItem('parkedAircraft', JSON.stringify(parkedAircraft)); 
             updateCondemnedMap(); 
             saveToGitHub(); 
         };
 
         const saveHistory = () => { 
-            localStorage.setItem('aeropark_history', JSON.stringify(aircraftHistory)); 
+            localStorage.setItem('aircraftHistory', JSON.stringify(aircraftHistory)); 
             saveToGitHub(); 
         };
 
         const saveRegDatabase = () => { 
-            localStorage.setItem('aeropark_regs', JSON.stringify(regDatabase)); 
+            localStorage.setItem('regDatabase', JSON.stringify(regDatabase)); 
             saveToGitHub(); 
         };
-
-        document.addEventListener('DOMContentLoaded', () => {
-            updateTZUI(); updateCondemnedMap(); initApron(); switchTab('sidebar', 'aircraft'); updateApronDisplay(); setDefaultDates();
-        });
 
         function initApron() {
             const svgGroup = $('tarmac-stands-svg-group');
@@ -559,7 +555,7 @@
         }
 
         function exportStandaloneApp() {
-            const dataToExport = { aeropark_config: AppConfig, aeropark_parked: parkedAircraft, aeropark_history: aircraftHistory, aeropark_regs: regDatabase };
+            const dataToExport = { AppConfig: AppConfig, parkedAircraft: parkedAircraft, aircraftHistory: aircraftHistory, regDatabase: regDatabase };
             const dataStr = encodeURIComponent(JSON.stringify(dataToExport));
             const docClone = document.documentElement.cloneNode(true);
             
@@ -1396,10 +1392,10 @@
         // Fonction de sauvegarde automatique vers GitHub (écriture en direct)
         async function saveToGitHub() {
             const dataToSend = {
-                aeropark_config: AppConfig,
-                aeropark_regs: regDatabase,
-                aeropark_parked: parkedAircraft,
-                aeropark_history: aircraftHistory
+                AppConfig: AppConfig,
+                regDatabase: regDatabase,
+                parkedAircraft: parkedAircraft,
+                aircraftHistory: aircraftHistory
             };
 
             try {
