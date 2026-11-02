@@ -5219,30 +5219,5 @@
     "F-HSTR": "DA40"
   },
   "parkedAircraft": {},
-  "aircraftHistory": [
-    {
-      "type": "DA40",
-      "reg": "F-HSTR",
-      "category": "avion",
-      "specs": {
-        "cat": "avion",
-        "span": 11.95,
-        "length": 8.02,
-        "mtow": 1.3,
-        "mototok": "Non renseigné",
-        "gpu": "Non renseigné",
-        "lektro": "NIL",
-        "hydro": "N/A",
-        "parts": "",
-        "incompatiblePush": []
-      },
-      "arr": "2026-11-03T11:55",
-      "dep": "N/A",
-      "autonomous": false,
-      "d5Orientation": null,
-      "comment": "",
-      "stand": "D2",
-      "actualDeparture": "2026-11-02T16:28"
-    }
-  ]
+  "aircraftHistory": []
 }
