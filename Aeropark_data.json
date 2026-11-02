@@ -5217,7 +5217,30 @@
     "F-GNSN": "BE58",
     "FHYKE": "PC12"
   },
-  "parkedAircraft": {},
+  "parkedAircraft": {
+    "A4": {
+      "type": "LJ55",
+      "reg": "D-CGBR",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 13.35,
+        "length": 16.79,
+        "mtow": 8.8,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "lektro": "NIL",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": []
+      },
+      "arr": "2026-11-02T16:19",
+      "dep": "N/A",
+      "autonomous": false,
+      "d5Orientation": null,
+      "comment": ""
+    }
+  },
   "aircraftHistory": [
     {
       "type": "C510",
