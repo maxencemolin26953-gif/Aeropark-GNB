@@ -889,7 +889,6 @@
             let matches = Object.keys(AppConfig.aircrafts).filter(k => k.includes(q)).sort((a,b) => a.localeCompare(b));
             if (matches.length === 0) { container.classList.add('hidden'); return; }
 
-            // MODIFICATION ICI : On a retiré le calcul et l'affichage des immatriculations pour la recherche du Type OACI
             container.innerHTML = matches.map(code => {
                 const item = AppConfig.aircrafts[code];
                 let compatHtml = '', clickHandler = `onclick="selectSearch('${mode}', '${code}')"`, cursorCls = 'cursor-pointer hover:bg-slate-600';
@@ -1349,23 +1348,19 @@
         const GITHUB_FILE_PATH = "Aeropark_data.json";
         const GITHUB_TOKEN = "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";
 
-        // On utilise uniquement l'API pour contourner le cache de 5 minutes
         const githubApiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
 
         async function loadAeroparkDataFromGitHub(isSilent = false) {
             try {
                 const response = await fetch(githubApiUrl, {
                     headers: { "Authorization": `token ${GITHUB_TOKEN}` },
-                    cache: "no-store" // Force à ignorer le cache
+                    cache: "no-store"
                 });
                 if (!response.ok) throw new Error("Erreur de chargement réseau");
                 
                 const fileMeta = await response.json();
-                
-                // Décodage du format renvoyé par l'API (avec nettoyage des sauts de ligne)
                 const remoteData = JSON.parse(decodeURIComponent(escape(atob(fileMeta.content.replace(/\s/g, "")))));
                 
-               // Correction du mapping avec les vraies clés du fichier JSON distant
                 if (remoteData.AppConfig) AppConfig = remoteData.AppConfig;
                 if (remoteData.regDatabase) regDatabase = remoteData.regDatabase;
                 if (remoteData.parkedAircraft) parkedAircraft = remoteData.parkedAircraft;
@@ -1373,23 +1368,20 @@
                 
                 updateCondemnedMap();
                 
-                // Si ce n'est pas une synchro de fond, on charge toute l'interface
+                // Met à jour l'affichage avec les données fraîches du cloud
+                initApron();
+                updateApronDisplay();
+
                 if (!isSilent) {
                     updateTZUI();
-                    initApron();
                     switchTab('sidebar', 'aircraft');
                     setDefaultDates();
                 }
-                
-                // Actualise visuellement le Tarmac et le panneau de gauche
-                updateApronDisplay(); 
-                
             } catch (error) {
                 console.warn("Synchro ignorée ou mode hors-ligne", error);
             }
         }
 
-        // Fonction de sauvegarde automatique vers GitHub (écriture en direct)
         async function saveToGitHub() {
             const dataToSend = {
                 AppConfig: AppConfig,
@@ -1425,14 +1417,21 @@
             }
         }
 
+        // --- CORRECTION DU CHARGEMENT INITIAL (DOMContentLoaded unique et robuste) ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Premier chargement complet au démarrage
+            // 1. Initialise et dessine immédiatement les cases de parking sur le tarmac
+            updateTZUI();
+            updateCondemnedMap();
+            initApron();
+            switchTab('sidebar', 'aircraft');
+            updateApronDisplay();
+            setDefaultDates();
+
+            // 2. Lance la récupération des données distantes en arrière-plan
             loadAeroparkDataFromGitHub();
             
-            // SYNCHRONISATION EN DIRECT
-            // Interroge le cloud toutes les 10 secondes (10000 millisecondes)
+            // 3. Synchronisation en direct toutes les 10 secondes
             setInterval(() => {
-                // Ne rafraîchit pas si une fenêtre est ouverte pour ne pas interrompre une saisie
                 const isModalOpen = !document.getElementById('modal-overlay').classList.contains('hidden');
                 if (!isModalOpen) {
                     loadAeroparkDataFromGitHub(true);
