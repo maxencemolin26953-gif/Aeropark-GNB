@@ -410,10 +410,11 @@
             saveToGitHub(); 
         };
 
-        const saveParked = () => { 
-            localStorage.setItem('parkedAircraft', JSON.stringify(parkedAircraft)); 
-            updateCondemnedMap(); 
-            saveToGitHub(); 
+       const saveParked = () => { 
+    localStorage.setItem('parkedAircraft', JSON.stringify(parkedAircraft)); 
+    updateCondemnedMap(); 
+    saveToGitHub(); // <-- Envoi immédiat et automatique vers le fichier distant GitHub
+}; 
         };
 
         const saveHistory = () => { 
@@ -1351,36 +1352,64 @@
         const githubApiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
 
         async function loadAeroparkDataFromGitHub(isSilent = false) {
-            try {
-                const response = await fetch(githubApiUrl, {
-                    headers: { "Authorization": `token ${GITHUB_TOKEN}` },
-                    cache: "no-store"
-                });
-                if (!response.ok) throw new Error("Erreur de chargement réseau");
-                
-                const fileMeta = await response.json();
-                const remoteData = JSON.parse(decodeURIComponent(escape(atob(fileMeta.content.replace(/\s/g, "")))));
-                
-                if (remoteData.AppConfig) AppConfig = remoteData.AppConfig;
-                if (remoteData.regDatabase) regDatabase = remoteData.regDatabase;
-                if (remoteData.parkedAircraft) parkedAircraft = remoteData.parkedAircraft;
-                if (remoteData.aircraftHistory) aircraftHistory = remoteData.aircraftHistory;
-                
-                updateCondemnedMap();
-                
-                // Met à jour l'affichage avec les données fraîches du cloud
-                initApron();
-                updateApronDisplay();
+    try {
+        const response = await fetch(githubApiUrl, {
+            headers: { "Authorization": `token ${GITHUB_TOKEN}` },
+            cache: "no-store"
+        });
+        if (!response.ok) throw new Error("Erreur de chargement réseau");
+        
+        const fileMeta = await response.json();
+        // Décodage UTF-8 robuste pour éviter les erreurs de caractères
+        const remoteData = JSON.parse(decodeURIComponent(escape(atob(fileMeta.content.replace(/\s/g, "")))));
+        
+        if (remoteData.AppConfig) AppConfig = remoteData.AppConfig;
+        if (remoteData.regDatabase) regDatabase = remoteData.regDatabase;
+        if (remoteData.parkedAircraft) parkedAircraft = remoteData.parkedAircraft;
+        if (remoteData.aircraftHistory) aircraftHistory = remoteData.aircraftHistory;
+        
+        updateCondemnedMap();
+        initApron();
+        updateApronDisplay();
 
-                if (!isSilent) {
-                    updateTZUI();
-                    switchTab('sidebar', 'aircraft');
-                    setDefaultDates();
-                }
-            } catch (error) {
-                console.warn("Synchro ignorée ou mode hors-ligne", error);
-            }
+        if (!isSilent) {
+            updateTZUI();
+            switchTab('sidebar', 'aircraft');
+            setDefaultDates();
         }
+    } catch (error) {
+        console.warn("Synchro ignorée ou mode hors-ligne", error);
+    }
+}async function loadAeroparkDataFromGitHub(isSilent = false) {
+    try {
+        const response = await fetch(githubApiUrl, {
+            headers: { "Authorization": `token ${GITHUB_TOKEN}` },
+            cache: "no-store"
+        });
+        if (!response.ok) throw new Error("Erreur de chargement réseau");
+        
+        const fileMeta = await response.json();
+        // Décodage UTF-8 robuste pour éviter les erreurs de caractères
+        const remoteData = JSON.parse(decodeURIComponent(escape(atob(fileMeta.content.replace(/\s/g, "")))));
+        
+        if (remoteData.AppConfig) AppConfig = remoteData.AppConfig;
+        if (remoteData.regDatabase) regDatabase = remoteData.regDatabase;
+        if (remoteData.parkedAircraft) parkedAircraft = remoteData.parkedAircraft;
+        if (remoteData.aircraftHistory) aircraftHistory = remoteData.aircraftHistory;
+        
+        updateCondemnedMap();
+        initApron();
+        updateApronDisplay();
+
+        if (!isSilent) {
+            updateTZUI();
+            switchTab('sidebar', 'aircraft');
+            setDefaultDates();
+        }
+    } catch (error) {
+        console.warn("Synchro ignorée ou mode hors-ligne", error);
+    }
+}
 
         async function saveToGitHub() {
             const dataToSend = {
@@ -1418,25 +1447,30 @@
         }
 
         // --- CORRECTION DU CHARGEMENT INITIAL (DOMContentLoaded unique et robuste) ---
-        document.addEventListener('DOMContentLoaded', () => {
-            // 1. Initialise et dessine immédiatement les cases de parking sur le tarmac
-            updateTZUI();
-            updateCondemnedMap();
-            initApron();
-            switchTab('sidebar', 'aircraft');
-            updateApronDisplay();
-            setDefaultDates();
+        document.addEventListener('DOMContentLoaded', async () => {
+    updateTZUI();
+    updateCondemnedMap();
+    
+    // 1. On télécharge d'abord les données distantes depuis GitHub
+    await loadAeroparkDataFromGitHub();
+    
+    // 2. Ensuite seulement, on dessine le tarmac et l'interface
+    initApron();
+    switchTab('sidebar', 'aircraft');
+    updateApronDisplay();
+    setDefaultDates();
+});
 
             // 2. Lance la récupération des données distantes en arrière-plan
             loadAeroparkDataFromGitHub();
             
             // 3. Synchronisation en direct toutes les 10 secondes
             setInterval(() => {
-                const isModalOpen = !document.getElementById('modal-overlay').classList.contains('hidden');
-                if (!isModalOpen) {
-                    loadAeroparkDataFromGitHub(true);
-                }
-            }, 10000);
+    const isModalOpen = !document.getElementById('modal-overlay').classList.contains('hidden');
+    if (!isModalOpen) {
+        loadAeroparkDataFromGitHub(true); // Chargement silencieux en arrière-plan
+    }
+}, 10000);
         });
     </script>
 </body>
