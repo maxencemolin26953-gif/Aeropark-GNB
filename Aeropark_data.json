@@ -5215,8 +5215,32 @@
     "YL-UAG": "E190",
     "OE-LUX": "GLF4",
     "F-GNSN": "BE58",
-    "FHYKE": "PC12"
+    "FHYKE": "PC12",
+    "F-HSTR": "DA40"
   },
-  "parkedAircraft": {},
+  "parkedAircraft": {
+    "D2": {
+      "type": "DA40",
+      "reg": "F-HSTR",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 11.95,
+        "length": 8.02,
+        "mtow": 1.3,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "lektro": "NIL",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": []
+      },
+      "arr": "2026-11-03T11:55",
+      "dep": "N/A",
+      "autonomous": false,
+      "d5Orientation": null,
+      "comment": ""
+    }
+  },
   "aircraftHistory": []
 }
