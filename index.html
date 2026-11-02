@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroPark - LFLS Apron Management</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; font-size: 14px; background-color: #131b2e; color: #f1f5f9; }
+        .font-mono { font-family: 'JetBrains Mono', monospace !important; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+        
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #64748b; }
+
+        .tarmac-bg {
+            background-color: #333945;
+            background-image: radial-gradient(#252a35 1px, transparent 1px), radial-gradient(#252a35 1px, #333945 1px);
+            background-size: 32px 32px;
+            background-position: 0 0, 16px 16px;
+        }
+
+        .parking-box { fill: #27354f; stroke: #94a3b8; stroke-width: 2.5; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
+        .parking-box:hover { stroke: #fbbf24; stroke-width: 4; fill: #334466; }
+        .parking-box.occupied { fill: #1e3a8a !important; stroke: #60a5fa !important; }
+        .parking-box.occupied:hover { fill: #2563eb !important; stroke: #93c5fd !important; }
+        .parking-box.condemned { fill: #581c87 !important; stroke: #f43f5e !important; opacity: 0.9; }
+        .parking-box.condemned:hover { fill: #881337 !important; stroke: #fb7185 !important; }
+
+        .stand-highlighted rect { stroke: #f59e0b !important; stroke-width: 6 !important; fill: #1d4ed8 !important; filter: drop-shadow(0 0 12px rgba(245, 158, 11, 0.8)); }
+        
+        .parking-text { fill: #f8fafc; font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 32px; text-anchor: middle; dominant-baseline: middle; pointer-events: none; text-shadow: 0px 4px 8px rgba(0, 0, 0, 0.9); }
+        .taxiway-line { stroke: #fbbf24; stroke-width: 3.5; stroke-linecap: round; fill: none; opacity: 0.9; pointer-events: none; }
+        .taxiway-branch { stroke: #fbbf24; stroke-width: 2.5; stroke-linecap: round; fill: none; opacity: 0.8; pointer-events: none; }
+        
+        input, select, textarea { color-scheme: dark; transition: border-color 0.2s, box-shadow 0.2s; }
+        input:focus, select:focus, textarea:focus { border-color: #f59e0b !important; box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.3) !important; outline: none; }
+        
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+            filter: invert(1) sepia(1) saturate(5) hue-rotate(35deg);
+            cursor: pointer;
+        }
+
+        #custom-tooltip { position: fixed; display: none; pointer-events: none; z-index: 9999; }
+        .fade-in { animation: fadeIn 0.2s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden selection:bg-amber-500/30">
+
+    <div id="app-launcher-overlay" class="fixed inset-0 bg-[#0b0f19] z-[99999] flex flex-col items-center justify-center p-6 text-center transition-opacity duration-300">
+        <div class="bg-slate-900 border border-slate-700/80 p-8 rounded-3xl shadow-2xl max-w-md w-full space-y-6 relative z-50">
+            <div class="bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl mx-auto shadow-lg shadow-amber-500/20"><i class="fa-solid fa-plane-departure"></i></div>
+            <div><h2 class="text-xl font-bold tracking-widest text-white mb-2">AEROPARK LFLS</h2><p class="text-xs text-slate-400 font-mono">Prêt à lancer l'application en mode plein écran autonome.</p></div>
+            <button onclick="launchAppFullscreen()" class="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider transition shadow-lg shadow-amber-400/20 flex items-center justify-center gap-2 cursor-pointer"><i class="fa-solid fa-expand"></i> Démarrer l'application</button>
+        </div>
+    </div>
+
+    <div id="custom-tooltip" class="bg-slate-800/95 backdrop-blur-xl border border-slate-600 p-4 rounded-xl shadow-2xl font-mono text-xs w-72 text-slate-100">
+        <div id="tooltip-header" class="flex items-center justify-between border-b border-slate-600 pb-2 mb-2"></div>
+        <div id="tooltip-body" class="space-y-1.5 text-slate-200"></div>
+    </div>
+
+    <header class="bg-slate-800/90 backdrop-blur-lg border-b border-slate-700 px-6 py-3 flex items-center justify-between z-20 shadow-md shrink-0">
+        <div class="flex items-center gap-4">
+            <div id="app-logo-trigger" onclick="triggerEE()" class="bg-gradient-to-br from-amber-400 to-amber-500 text-slate-950 w-10 h-10 rounded-xl flex items-center justify-center font-black shadow-lg shadow-amber-500/20 cursor-pointer hover:scale-105 transition-transform"><i class="fa-solid fa-plane-departure"></i></div>
+            <div>
+                <div class="flex items-center gap-3"><h1 class="font-bold tracking-widest text-white">AEROPARK</h1><span class="text-amber-300 font-mono text-[10px] uppercase px-2 py-0.5 bg-amber-400/20 border border-amber-400/40 rounded-full tracking-wider font-semibold">LFLS - Grenoble</span></div>
+                <p class="text-[11px] text-slate-300 font-medium">Gestion de l'aire de trafic (Heure locale : <span class="tz-label font-bold text-white">UTC+1</span>)</p>
+            </div>
+        </div>
+        
+        <div class="hidden md:flex items-center gap-6 bg-slate-900/70 px-5 py-2 rounded-xl border border-slate-700 font-mono text-xs shadow-inner">
+            <div class="flex items-center gap-2"><span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span></span><span class="text-slate-300">Libres:</span><span id="stat-free" class="text-emerald-400 font-bold">0</span></div><div class="w-px h-4 bg-slate-600"></div>
+            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-blue-400"></span><span class="text-slate-300">Occupés:</span><span id="stat-occupied" class="text-blue-300 font-bold">0</span></div><div class="w-px h-4 bg-slate-600"></div>
+            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span><span class="text-slate-300">Condamnés:</span><span id="stat-condemned" class="text-rose-300 font-bold">0</span></div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <button onclick="openModal('modal-add')" class="bg-amber-400 hover:bg-amber-300 text-slate-950 px-4 py-2 rounded-xl font-bold text-xs transition-colors flex items-center gap-2 shadow-lg shadow-amber-400/20"><i class="fa-solid fa-plane-arrival"></i> Garer</button>
+            <button onclick="requestConfigAccess()" class="bg-slate-700 hover:bg-slate-600 text-slate-100 px-4 py-2 rounded-xl font-bold text-xs transition-colors flex items-center gap-2 border border-slate-600"><i class="fa-solid fa-sliders text-amber-300"></i> Config</button>
+            <button onclick="exportStandaloneApp()" title="Exporter l'application complète" class="bg-slate-700/60 hover:bg-slate-600 text-slate-300 hover:text-white w-9 h-9 rounded-xl text-xs transition-colors flex items-center justify-center border border-slate-600/60"><i class="fa-solid fa-cloud-arrow-down text-sm"></i></button>
+            <button onclick="closeApp()" title="Fermer l'application" class="bg-rose-600/80 hover:bg-rose-600 text-white w-9 h-9 rounded-xl font-bold text-xs transition-colors flex items-center justify-center border border-rose-500/50 shadow-lg ml-2"><i class="fa-solid fa-xmark text-sm"></i></button>
+        </div>
+    </header>
+
+    <div class="flex-1 flex overflow-hidden">
+        <aside class="w-96 bg-slate-800 border-r border-slate-700 flex flex-col z-10 shadow-2xl relative shrink-0">
+            <div class="p-4 border-b border-slate-700 bg-slate-800/80 backdrop-blur shrink-0">
+                <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-700 text-[11px] font-bold">
+                    <button onclick="switchTab('sidebar', 'parkings')" id="tab-sidebar-parkings" class="flex-1 py-2 rounded-lg text-slate-300 hover:text-white transition-all">POSTES (<span id="count-active">0</span>)</button>
+                    <button onclick="switchTab('sidebar', 'aircraft')" id="tab-sidebar-aircraft" class="flex-1 py-2 rounded-lg bg-slate-700 text-amber-300 shadow transition-all">TYPE AVION</button>
+                </div>
+            </div>
+
+            <div id="content-sidebar-parkings" class="flex-1 overflow-y-auto p-4 hidden custom-scrollbar space-y-3">
+                <div class="relative mb-2 font-mono"><i class="fa-solid fa-search absolute left-3 top-2.5 text-slate-400 text-xs"></i><input type="text" id="sidebar-parkings-search" oninput="updateSidebarList()" placeholder="Filtrer par poste ou immat..." class="w-full bg-slate-900 border border-slate-600 rounded-xl pl-9 pr-3 py-2 text-white text-xs uppercase focus:border-amber-400"></div>
+                <div id="active-list-container" class="space-y-3"></div>
+            </div>
+
+            <div id="content-sidebar-aircraft" class="flex-1 overflow-y-auto p-4 space-y-4 font-mono custom-scrollbar">
+                <div class="relative"><i class="fa-solid fa-search absolute left-4 top-3.5 text-slate-400"></i><input type="text" id="sidebar-aircraft-search" oninput="handleSearch('sidebar', this.value)" placeholder="Rechercher OACI ou Immat" class="w-full bg-slate-900 border border-slate-600 rounded-xl pl-10 pr-4 py-3 text-white text-xs uppercase focus:border-amber-400">
+                    <div id="autocomplete-sidebar" class="hidden absolute left-0 right-0 top-full mt-2 bg-slate-700 border border-slate-600 rounded-xl shadow-xl z-50 max-h-96 overflow-y-auto custom-scrollbar"></div>
+                </div>
+                <div id="sidebar-aircraft-result"></div>
+                <div id="push-result-container"></div>
+            </div>
+
+            <div id="content-sidebar-history" class="flex-1 overflow-y-auto p-4 hidden space-y-3 custom-scrollbar">
+                <div class="flex justify-between items-center mb-2"><span class="text-[10px] font-bold uppercase text-amber-300 font-mono">Dossier des Appareils Archivés</span><button onclick="clearHistory()" class="text-[10px] text-rose-300 hover:text-rose-200 font-mono"><i class="fa-solid fa-trash-can mr-1"></i> Vider</button></div>
+                <div class="relative mb-2 font-mono"><i class="fa-solid fa-search absolute left-3 top-2.5 text-slate-400 text-xs"></i><input type="text" id="sidebar-history-search" oninput="updateHistoryList()" placeholder="Filtrer immat, type ou poste..." class="w-full bg-slate-900 border border-slate-600 rounded-xl pl-9 pr-3 py-2 text-white text-xs uppercase focus:border-amber-400"></div>
+                <div id="history-list-container" class="space-y-3"></div>
+            </div>
+            
+            <div class="p-3 border-t border-slate-700 bg-slate-900 flex items-center justify-between shrink-0 font-mono">
+                <button onclick="switchTab('sidebar', 'history')" id="tab-sidebar-history-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl font-bold text-xs transition border border-slate-600 flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-amber-300"></i> Dossier Archivé (<span id="count-history">0</span>)</button>
+                <div class="text-[10px] text-slate-400">LFLS v5.0</div>
+            </div>
+        </aside>
+
+        <main class="flex-1 tarmac-bg relative flex items-center justify-center p-6 overflow-hidden">
+            <div class="w-full h-full max-w-[1400px] bg-[#3e4654] rounded-3xl shadow-2xl border border-slate-600/70 relative overflow-hidden flex items-center justify-center">
+                <svg viewBox="0 0 1750 900" preserveAspectRatio="xMidYMid meet" class="w-full h-full drop-shadow-xl" xmlns="http://www.w3.org/2000/svg">
+                    <g transform="translate(30, 0)">
+                        <path d="M 477 -10 L 477 645 C 477 685, 445 685, 395 685 L 125 685" class="taxiway-line" />
+                        <path d="M 477 645 C 477 685, 507 685, 557 685 L 820 685 C 930 685, 1010 745, 1120 745 L 1685 745" class="taxiway-line" />
+                        <line x1="220" y1="56" x2="477" y2="56" class="taxiway-branch" /><line x1="220" y1="171" x2="477" y2="171" class="taxiway-branch" /><line x1="220" y1="286" x2="477" y2="286" class="taxiway-branch" /><line x1="220" y1="401" x2="477" y2="401" class="taxiway-branch" /><line x1="220" y1="516" x2="477" y2="516" class="taxiway-branch" />
+                        <line x1="477" y1="121" x2="740" y2="121" class="taxiway-branch" /><line x1="477" y1="236" x2="740" y2="236" class="taxiway-branch" /><line x1="477" y1="351" x2="740" y2="351" class="taxiway-branch" /><line x1="477" y1="466" x2="740" y2="466" class="taxiway-branch" />
+                        <line x1="660" y1="589" x2="660" y2="685" class="taxiway-branch" /><line x1="820" y1="589" x2="820" y2="685" class="taxiway-branch" />
+                        <line x1="1120" y1="639" x2="1120" y2="745" class="taxiway-branch" /><line x1="1250" y1="704" x2="1250" y2="745" class="taxiway-branch" /><line x1="1380" y1="704" x2="1380" y2="745" class="taxiway-branch" /><line x1="1510" y1="704" x2="1510" y2="745" class="taxiway-branch" /><line x1="1640" y1="704" x2="1640" y2="745" class="taxiway-branch" />
+                        <line x1="157.5" y1="572" x2="157.5" y2="685" class="taxiway-branch" /><line x1="157.5" y1="800" x2="157.5" y2="685" class="taxiway-branch" /><line x1="352.5" y1="800" x2="352.5" y2="685" class="taxiway-branch" /><line x1="547.5" y1="800" x2="547.5" y2="685" class="taxiway-branch" /><line x1="585" y1="-50" x2="477" y2="-118" class="taxiway-branch" />
+                    </g>
+                    <g transform="translate(30, 0)" id="tarmac-stands-svg-group"></g>
+                </svg>
+                <div class="absolute bottom-5 left-5 bg-slate-800/90 backdrop-blur border border-slate-600 px-4 py-2 rounded-xl text-[10px] font-mono font-bold text-slate-200 pointer-events-none shadow-lg tracking-widest flex items-center"><span class="w-2 h-2 rounded-full bg-amber-400 mr-2 animate-pulse"></span> DIRECT TARMAC</div>
+                <button onclick="resetApron()" class="absolute bottom-5 right-5 bg-slate-800 hover:bg-rose-950 text-slate-200 hover:text-rose-300 border border-slate-600 hover:border-rose-800 px-4 py-2 rounded-xl text-[11px] font-mono font-bold transition-colors flex items-center gap-2 shadow-lg"><i class="fa-solid fa-trash-can"></i> Reset</button>
+            </div>
+        </main>
+    </div>
+
+    <div id="modal-overlay" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-40 hidden transition-opacity"></div>
+
+    <div id="modal-lock" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 sm:p-6">
+        <div class="bg-slate-800 border border-slate-600 rounded-2xl w-full max-w-xs shadow-2xl flex flex-col fade-in font-mono text-xs text-slate-100">
+            <div class="p-4 border-b border-slate-700 flex items-center justify-between"><h3 class="font-bold text-white flex items-center gap-2"><i class="fa-solid fa-lock text-amber-400"></i> Accès Réservé</h3><button onclick="closeModal('modal-lock')" class="text-slate-300 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button></div>
+            <div class="p-5 space-y-4 text-center"><p class="text-slate-300 text-[11px]">Saisissez le code PIN :</p><input type="password" id="config-pin-input" maxlength="4" placeholder="••••" onkeydown="if(event.key==='Enter') verifyConfigPin()" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-center text-lg font-bold tracking-widest text-white focus:border-amber-400"></div>
+            <div class="p-4 border-t border-slate-700 flex justify-end gap-2"><button onclick="closeModal('modal-lock')" class="px-4 py-2 bg-slate-700 text-white rounded-xl font-bold hover:bg-slate-600">Annuler</button><button onclick="verifyConfigPin()" class="px-5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl font-bold shadow">Valider</button></div>
+        </div>
+    </div>
+
+    <div id="modal-settings" class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6 overflow-visible">
+        <div class="bg-slate-800 border border-slate-600 rounded-2xl w-full max-w-5xl shadow-2xl flex flex-col fade-in relative my-8 overflow-visible text-slate-100" style="max-height: 90vh;">
+            <div class="p-5 border-b border-slate-700 flex items-center justify-between shrink-0">
+                <h3 class="font-bold text-lg text-white flex items-center gap-2"><i class="fa-solid fa-sliders text-amber-400"></i> Paramètres Système</h3>
+                <div class="flex items-center gap-4">
+                    <button onclick="toggleTZ()" class="text-xs bg-slate-900 border border-slate-600 px-3 py-1.5 rounded-lg text-amber-300 font-mono hover:bg-slate-700 transition flex items-center gap-2 shadow"><i class="fa-solid fa-earth-europe"></i> <span id="tz-settings-btn">UTC+1</span></button>
+                    <button onclick="closeModal('modal-settings')" class="text-slate-300 hover:text-white p-1 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+            </div>
+            <div class="p-4 border-b border-slate-700 bg-slate-800/50 shrink-0">
+                <div class="flex gap-2 font-bold text-[11px] max-w-2xl">
+                    <button onclick="switchTab('settings', 'parkings')" id="tab-settings-parkings" class="flex-1 py-2 rounded-lg bg-amber-400/20 text-amber-300 border border-amber-400/40 transition-all">POSTES</button>
+                    <button onclick="switchTab('settings', 'constraints')" id="tab-settings-constraints" class="flex-1 py-2 rounded-lg text-slate-300 hover:bg-slate-700 transition-all">CONTRAINTES</button>
+                    <button onclick="switchTab('settings', 'aircrafts')" id="tab-settings-aircrafts" class="flex-1 py-2 rounded-lg text-slate-300 hover:bg-slate-700 transition-all">AVION/HELICO</button>
+                    <button onclick="switchTab('settings', 'immat')" id="tab-settings-immat" class="flex-1 py-2 rounded-lg text-slate-300 hover:bg-slate-700 transition-all">IMMAT</button>
+                    <button onclick="switchTab('settings', 'push')" id="tab-settings-push" class="flex-1 py-2 rounded-lg text-slate-300 hover:bg-slate-700 transition-all">TRACTEURS</button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar overflow-visible">
+                <div id="content-settings-parkings"><input type="text" id="search-parking-input" oninput="buildSettingsTables()" placeholder="Filtrer les postes..." class="w-full md:w-1/3 mb-4 bg-slate-900 border border-slate-600 rounded-xl px-4 py-2 font-mono text-xs text-white"><div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="settings-parkings-grid"></div></div>
+                <div id="content-settings-constraints" class="hidden overflow-visible"><p class="text-xs text-slate-300 mb-4 font-mono">Configurez ici les contraintes de chaque poste.</p><input type="text" id="search-constraint-input" oninput="buildSettingsTables()" placeholder="Filtrer les postes..." class="w-full md:w-1/3 mb-4 bg-slate-900 border border-slate-600 rounded-xl px-4 py-2 font-mono text-xs text-white"><div class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-visible" id="settings-constraints-grid"></div></div>
+                <div id="content-settings-aircrafts" class="hidden">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="flex bg-slate-900 rounded-lg p-1 border border-slate-700 text-[10px] font-bold"><button onclick="switchFleetCat('avion')" id="btn-fleet-avion" class="px-4 py-1.5 rounded bg-slate-700 text-amber-300">AVIONS</button><button onclick="switchFleetCat('helico')" id="btn-fleet-helico" class="px-4 py-1.5 rounded text-slate-300">HÉLICOS</button></div>
+                        <div class="flex gap-2"><input type="text" id="search-fleet-input" oninput="buildSettingsTables()" placeholder="Rechercher OACI..." class="bg-slate-900 border border-slate-600 rounded-xl px-4 py-2 font-mono text-xs w-48 text-white"><button onclick="openAircraftModal()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold transition"><i class="fa-solid fa-plus mr-1"></i> Nouveau</button></div>
+                    </div>
+                    <div class="overflow-x-auto rounded-xl border border-slate-700 custom-scrollbar"><table class="w-full text-left text-xs font-mono whitespace-nowrap"><thead class="bg-slate-900 text-slate-300 border-b border-slate-700"><tr><th class="p-3">OACI</th><th class="p-3">Type</th><th class="p-3" id="th-span">Rotor/Env (m)</th><th class="p-3">Cat</th><th class="p-3" id="th-len">LHT/Long (m)</th><th class="p-3" id="th-gear">T/A</th><th class="p-3">MTOW</th><th class="p-3" id="th-lek">Lektro</th><th class="p-3">Action</th></tr></thead><tbody id="settings-table-aircrafts" class="divide-y divide-slate-700/50 bg-slate-800/50"></tbody></table></div>
+                </div>
+                <div id="content-settings-immat" class="hidden font-mono text-xs overflow-visible">
+                    <div class="flex justify-between items-center mb-4 gap-4"><input type="text" id="search-immat-input" oninput="buildSettingsTables()" placeholder="Rechercher immatriculation..." class="bg-slate-900 border border-slate-600 rounded-xl px-4 py-2 w-72 text-white"><div class="flex gap-2"><button onclick="openAddImmatModal()" class="bg-amber-400 hover:bg-amber-300 text-slate-950 px-4 py-2 rounded-xl text-xs font-bold transition"><i class="fa-solid fa-plus mr-1"></i> Ajouter Immat</button><button onclick="clearImmatDatabase()" class="bg-rose-600/80 hover:bg-rose-600 text-white px-3 py-2 rounded-xl text-xs font-bold transition"><i class="fa-solid fa-trash-can mr-1"></i> Tout effacer</button></div></div>
+                    <div class="overflow-visible rounded-xl border border-slate-700 custom-scrollbar max-h-96"><table class="w-full text-left whitespace-nowrap"><thead class="bg-slate-900 text-slate-300 border-b border-slate-700 sticky top-0 z-10"><tr><th class="p-3">Immatriculation</th><th class="p-3">Type Avion (Code OACI)</th><th class="p-3">Action</th></tr></thead><tbody id="settings-table-immat" class="divide-y divide-slate-700/50 bg-slate-800/50 overflow-visible"></tbody></table></div>
+                </div>
+                <div id="content-settings-push" class="hidden"><div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="settings-push-grid"></div></div>
+            </div>
+            <div class="p-4 border-t border-slate-700 bg-slate-800 flex justify-end rounded-b-2xl shrink-0"><button onclick="closeModal('modal-settings')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs transition shadow flex items-center gap-2"><i class="fa-solid fa-check"></i> Terminer</button></div>
+        </div>
+    </div>
+
+    <div id="modal-add-immat" class="fixed inset-0 z-[70] hidden items-center justify-center p-4 sm:p-6 overflow-visible">
+        <div class="bg-slate-800 border border-slate-600 rounded-2xl w-full max-w-md shadow-2xl flex flex-col fade-in text-slate-100 font-mono text-xs relative overflow-visible">
+            <div class="p-4 border-b border-slate-700 flex items-center justify-between shrink-0"><h3 class="font-bold text-white flex items-center gap-2"><i class="fa-solid fa-plane-circle-plus text-amber-400"></i> Nouvelle Immat</h3><button onclick="closeModal('modal-add-immat')" class="text-slate-300 hover:text-white p-1 transition"><i class="fa-solid fa-xmark text-lg"></i></button></div>
+            <div class="p-5 space-y-4 overflow-visible">
+                <div><label class="block text-[10px] font-bold uppercase text-slate-300 mb-1">Immatriculation</label><input type="text" id="new-immat-reg" placeholder="ex: F-GABC" autocomplete="off" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-2.5 text-white uppercase focus:border-amber-400"></div>
+                <div class="relative overflow-visible"><label class="block text-[10px] font-bold uppercase text-slate-300 mb-1">Type (OACI)</label><input type="text" id="new-immat-type" oninput="handleSearch('immat-add', this.value)" placeholder="ex: A320" autocomplete="off" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-2.5 text-white uppercase focus:border-amber-400"><div id="auto-direct-immat-add" class="hidden absolute left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-xl shadow-2xl z-[100] max-h-48 overflow-y-auto custom-scrollbar"></div></div>
+            </div>
+            <div class="p-4 border-t border-slate-700 flex justify-end gap-2 bg-slate-800/80 rounded-b-2xl"><button onclick="closeModal('modal-add-immat')" class="px-4 py-2 bg-slate-700 text-white rounded-xl font-bold hover:bg-slate-600 transition">Annuler</button><button onclick="submitNewImmatModal()" class="px-5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 rounded-xl font-bold transition shadow">Enregistrer</button></div>
+        </div>
+    </div>
+
+    <div id="modal-add" class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6 overflow-visible">
+        <div class="bg-slate-800 border border-slate-600 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col fade-in relative my-8 overflow-visible text-slate-100">
+            <div class="p-5 border-b border-slate-700 flex items-center justify-between shrink-0 relative z-20 bg-slate-800 rounded-t-2xl"><h3 class="font-bold text-lg text-white flex items-center gap-2"><i class="fa-solid fa-plane-circle-check text-amber-400"></i> Affectation Aéronef (Arrivée en UTC (loc:<span class="tz-label">UTC+1</span>))</h3><button onclick="closeModal('modal-add')" class="text-slate-300 hover:text-white p-1 transition"><i class="fa-solid fa-xmark text-lg"></i></button></div>
+            <div class="p-6 space-y-5 overflow-visible flex-1 relative z-10">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-visible">
+                    <div class="relative overflow-visible"><label class="block text-[10px] font-bold uppercase text-slate-300 mb-1">Type OACI</label><input type="text" id="ac-type" oninput="handleSearch('add', this.value)" placeholder="A320" autocomplete="off" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 font-mono text-xs uppercase text-white"><div id="autocomplete-add" class="hidden absolute left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-xl shadow-2xl z-[100] max-h-[30vh] overflow-y-auto custom-scrollbar"></div></div>
+                    <div class="relative overflow-visible"><label class="block text-[10px] font-bold uppercase text-slate-300 mb-1">Immatriculation</label><input type="text" id="ac-reg" oninput="handleSearchReg('add', this.value)" placeholder="F-GABC" autocomplete="off" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 font-mono text-xs uppercase text-white"><div id="autocomplete-reg-add" class="hidden absolute left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-xl shadow-2xl z-[100] max-h-[30vh] overflow-y-auto custom-scrollbar"></div></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="block text-[10px] font-bold uppercase text-slate-300 mb-1">Arrivée en UTC (loc:<span class="tz-label">UTC+1</span>)</label><div class="flex gap-2"><input type="datetime-local" id="ac-arr" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 font-mono text-xs text-white"><button type="button" onclick="setNowUtc('ac-arr')" title="Heure actuelle UTC" class="bg-slate-700 hover:bg-amber-400 hover:text-slate-900 text-slate-300 px-3 py-2.5 rounded-xl transition shadow-inner"><i class="fa-solid fa-clock"></i></button></div></div>
+                    <div><label class="block text-[10px] font-bold uppercase text-slate-300 mb-1">Départ en UTC (loc:<span class="tz-label">UTC+1</span>)</label><div class="flex gap-2"><input type="datetime-local" id="ac-dep" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 font-mono text-xs text-white"><button type="button" onclick="setNowUtc('ac-dep')" title="Heure actuelle UTC" class="bg-slate-700 hover:bg-amber-400 hover:text-slate-900 text-slate-300 px-3 py-2.5 rounded-xl transition shadow-inner"><i class="fa-solid fa-clock"></i></button></div></div>
+                </div>
+                
+                <div id="ac-specs-preview" class="hidden bg-slate-900/70 p-4 rounded-xl border border-slate-700 font-mono text-xs"></div>
+                <div id="add-d5-nose-container" class="hidden bg-slate-900 border border-slate-700 p-4 rounded-xl space-y-2"><label class="text-[10px] font-bold uppercase text-amber-300 flex items-center gap-1.5"><i class="fa-solid fa-arrows-split-up-and-left"></i> Orientation D5</label><div class="flex items-center gap-4 text-xs font-mono"><label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="add-d5" value="Nose In" checked class="text-amber-400"> <span>Nose In</span></label><label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="add-d5" value="Nose Out" class="text-amber-400"> <span>Nose Out</span></label></div></div>
+                <div id="add-b2b3d5-nose-container" class="hidden bg-slate-900 border border-slate-700 p-4 rounded-xl space-y-2"><label id="add-b2b3d5-label" class="text-[10px] font-bold uppercase text-amber-300 flex items-center gap-1.5"><i class="fa-solid fa-arrows-split-up-and-left"></i> Orientation</label><div class="flex items-center gap-4 text-xs font-mono"><label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="add-b2b3d5" value="Nose In" checked class="text-amber-400"> <span>Nose In</span></label><label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="add-b2b3d5" value="Nose Out" class="text-amber-400"> <span>Nose Out</span></label></div></div>
+                <div id="add-auto-container" class="hidden bg-slate-900 border border-slate-700 p-4 rounded-xl space-y-2"><label id="add-auto-label" class="text-[10px] font-bold uppercase"></label><div class="flex items-center gap-4 text-xs font-mono"><label class="flex items-center gap-2 cursor-pointer" id="lbl-auto-true"><input type="radio" name="add-auto" value="true" checked class="text-amber-400"> <span>Sortie Autonome</span></label><label class="flex items-center gap-2 cursor-pointer" id="lbl-auto-false"><input type="radio" name="add-auto" value="false" class="text-amber-400"> <span>Tracteur (Push)</span></label></div></div>
+
+                <div class="relative overflow-visible">
+                    <label class="block text-[10px] font-bold uppercase text-slate-300 mb-1">Assignation du Poste</label><input type="hidden" id="ac-stand" value="">
+                    <button type="button" onclick="$('dropdown-add').classList.toggle('hidden');" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 font-mono text-xs text-left flex justify-between items-center text-white hover:border-amber-400 transition"><span id="dropdown-add-lbl">-- Sélection Automatique --</span><i class="fa-solid fa-chevron-down text-slate-400"></i></button>
+                    <div id="dropdown-add" class="hidden absolute left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-xl shadow-2xl z-[100] max-h-[30vh] overflow-y-auto custom-scrollbar"></div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-700 bg-slate-800 flex justify-end gap-3 rounded-b-2xl shrink-0 relative z-0"><button onclick="closeModal('modal-add')" class="px-5 py-2.5 rounded-xl bg-slate-700 text-slate-200 font-bold text-xs hover:bg-slate-600">Annuler</button><button onclick="submitAircraft()" class="px-6 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-lg shadow-amber-400/20">Valider & Garer</button></div>
+        </div>
+    </div>
+
+    <div id="modal-stand" class="fixed inset-0 z-50 hidden items-center justify-center p-4 sm:p-6 overflow-visible">
+        <div class="bg-slate-800 border border-slate-600 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col fade-in overflow-visible relative my-8 text-slate-100" style="max-height: 90vh;">
+            <div class="p-5 border-b border-slate-700 flex items-center justify-between shrink-0 relative z-20 bg-slate-800 rounded-t-2xl"><h3 class="font-bold text-lg text-white flex items-center gap-2"><i class="fa-solid fa-square-parking text-amber-400"></i> POSTE <span id="modal-stand-id" class="text-amber-400 font-mono"></span></h3><button onclick="closeModal('modal-stand')" class="text-slate-300 hover:text-white p-1 transition"><i class="fa-solid fa-xmark text-lg"></i></button></div>
+            <div class="p-6 overflow-y-auto custom-scrollbar flex-1 relative z-10 space-y-4 overflow-visible" id="stand-content"></div>
+            <div id="stand-actions" class="p-4 border-t border-slate-700 bg-slate-800 rounded-b-2xl flex items-center justify-between shrink-0 relative z-0"></div>
+        </div>
+    </div>
+
+    <div id="modal-depart" class="fixed inset-0 z-[70] hidden items-center justify-center p-4 sm:p-6">
+        <div class="bg-slate-800 border border-slate-600 rounded-2xl w-full max-w-md shadow-2xl flex flex-col fade-in font-mono text-xs text-slate-100">
+            <div class="p-4 border-b border-slate-700 flex items-center justify-between"><h3 class="font-bold text-white"><i class="fa-solid fa-plane-up text-amber-400 mr-2"></i> Libérer et Archiver le poste</h3></div>
+            <div class="p-5 space-y-4"><input type="hidden" id="depart-stand-target"><p class="text-slate-200">Date et heure de départ effectif en UTC (loc:<span class="tz-label">UTC+1</span>) :</p><div><label class="block text-[10px] uppercase text-slate-300 mb-1">Départ Effectif en UTC (loc:<span class="tz-label">UTC+1</span>)</label><div class="flex gap-2"><input type="datetime-local" id="depart-time-input" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 text-white"><button type="button" onclick="setNowUtc('depart-time-input')" title="Heure actuelle UTC" class="bg-slate-700 hover:bg-amber-400 hover:text-slate-900 text-slate-300 px-3 py-2.5 rounded-xl transition shadow-inner"><i class="fa-solid fa-clock"></i></button></div></div></div>
+            <div class="p-4 border-t border-slate-700 flex justify-end gap-2"><button onclick="closeModal('modal-depart')" class="px-4 py-2 bg-slate-700 text-white rounded-xl font-bold hover:bg-slate-600">Annuler</button><button onclick="confirmDepartAc()" class="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-bold shadow">Valider & Libérer</button></div>
+        </div>
+    </div>
+
+    <div id="modal-history-detail" class="fixed inset-0 z-[70] hidden items-center justify-center p-4 sm:p-6">
+        <div class="bg-slate-800 border border-slate-600 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col fade-in font-mono text-xs text-slate-100">
+            <div class="p-4 border-b border-slate-700 flex items-center justify-between"><h3 class="font-bold text-white flex items-center gap-2"><i class="fa-solid fa-file-lines text-amber-400"></i> Fiche d'Archive</h3><button onclick="closeModal('modal-history-detail')" class="text-slate-300 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button></div>
+            <div id="history-detail-content" class="p-5 space-y-3 overflow-y-auto max-h-[70vh] custom-scrollbar text-slate-200"></div>
+            <div class="p-4 border-t border-slate-700 flex justify-end"><button onclick="closeModal('modal-history-detail')" class="px-4 py-2 bg-slate-700 text-white rounded-xl font-bold">Fermer</button></div>
+        </div>
+    </div>
+    
+    <div id="modal-ac-edit" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 sm:p-6">
+        <div class="bg-slate-800 border border-slate-600 rounded-2xl w-full max-w-lg max-h-full shadow-2xl flex flex-col fade-in text-slate-100">
+            <div class="p-4 border-b border-slate-700 shrink-0"><h3 class="font-bold text-white flex items-center gap-2" id="ac-edit-title">Fiche</h3></div>
+            <div class="p-5 font-mono text-xs space-y-4 overflow-y-auto flex-1 custom-scrollbar">
+                <input type="hidden" id="edit-orig">
+                <div class="grid grid-cols-2 gap-4">
+                    <div><label class="text-slate-300 block mb-1">OACI</label><input type="text" id="edit-code" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white"></div>
+                    <div><label class="text-slate-300 block mb-1">Catégorie</label><select id="edit-cat" onchange="toggleFormCat()" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white"><option value="avion">Avion</option><option value="helico">Hélico</option></select></div>
+                    <div><label class="text-slate-300 block mb-1" id="lbl-edit-span">Rotor/Env.</label><input type="number" step="0.01" id="edit-span" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white"></div>
+                    <div><label class="text-slate-300 block mb-1" id="lbl-edit-len">LHT/Long.</label><input type="number" step="0.01" id="edit-len" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white"></div>
+                    <div><label class="text-slate-300 block mb-1">MTOW</label><input type="number" step="0.1" id="edit-mtow" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white"></div>
+                    <div id="grp-lek"><label class="text-slate-300 block mb-1">Lektro</label><input type="text" id="edit-lek" value="NIL" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white"></div>
+                    <div id="grp-gear" class="hidden"><label class="text-slate-300 block mb-1">T/A</label><select id="edit-gear" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white"><option value="patins">Patins</option><option value="roues">Roues</option></select></div>
+                    <div><label class="text-slate-300 block mb-1">Mototok</label><select id="edit-mototok" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white"><option value="Palettes simples">Palettes simples</option><option value="Palettes doubles">Palettes doubles</option><option value="Non renseigné">Non renseigné</option></select></div>
+                    <div><label class="text-slate-300 block mb-1">GPU</label><select id="edit-gpu" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white"><option value="28V">28V</option><option value="400Hz">400Hz</option><option value="Non renseigné">Non renseigné</option></select></div>
+                    <div class="col-span-2"><label class="text-slate-300 block mb-1">Déconnexion hydraulique train avant</label><input type="text" id="edit-hydro" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white"></div>
+                    <div class="col-span-2"><label class="text-slate-300 block mb-1">Particularités générales</label><textarea id="edit-parts" rows="2" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white resize-none"></textarea></div>
+                    <div class="col-span-2" id="grp-push-incompat">
+                        <label class="text-slate-300 block mb-2 font-bold"><i class="fa-solid fa-ban text-rose-400 mr-1"></i> Forcer l'incompatibilité Tracteur (même si la MTOW le permet)</label>
+                        <div class="flex gap-4 bg-slate-900 p-3 rounded-lg border border-slate-600">
+                            <label class="flex items-center gap-2 cursor-pointer hover:text-amber-300 transition"><input type="checkbox" value="LEKTRO" class="push-inc-cb rounded bg-slate-800 border-slate-600 text-amber-400 focus:ring-0"> LEKTRO</label>
+                            <label class="flex items-center gap-2 cursor-pointer hover:text-amber-300 transition"><input type="checkbox" value="MOTOTOK" class="push-inc-cb rounded bg-slate-800 border-slate-600 text-amber-400 focus:ring-0"> MOTOTOK</label>
+                            <label class="flex items-center gap-2 cursor-pointer hover:text-amber-300 transition"><input type="checkbox" value="TPX 100" class="push-inc-cb rounded bg-slate-800 border-slate-600 text-amber-400 focus:ring-0"> TPX 100</label>
+                            <label class="flex items-center gap-2 cursor-pointer hover:text-amber-300 transition"><input type="checkbox" value="TPX 200" class="push-inc-cb rounded bg-slate-800 border-slate-600 text-amber-400 focus:ring-0"> TPX 200</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-700 flex justify-end gap-2 shrink-0"><button onclick="closeModal('modal-ac-edit')" class="px-4 py-2 bg-slate-700 text-white rounded-lg text-xs font-bold hover:bg-slate-600 transition">Annuler</button><button onclick="saveAcEdit()" class="px-4 py-2 bg-amber-400 text-slate-950 rounded-lg text-xs font-bold hover:bg-amber-300 transition shadow">Enregistrer</button></div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        const $ = id => document.getElementById(id);
+        const $$ = sel => document.querySelectorAll(sel);
+
+        const CONFIG_PIN = "1664";
+        const defaultConfig = {
+            timezone: 'UTC+1',
+            stands: {
+                'A2': { spanMax: 28.8, lengthMax: 28.0, lhtMax: 18.9, x: 65, y: 0, w: 310, h: 112, rx: 4, tx: 220, ty: 56, rot: 0, constraint: "", condemns: [] },
+                'A4': { spanMax: 28.8, lengthMax: 28.0, lhtMax: 18.9, x: 65, y: 115, w: 310, h: 112, rx: 4, tx: 220, ty: 171, rot: 0, constraint: "", condemns: [] },
+                'A6': { spanMax: 28.8, lengthMax: 28.0, lhtMax: 18.9, x: 65, y: 230, w: 310, h: 112, rx: 4, tx: 220, ty: 286, rot: 0, constraint: "", condemns: [] },
+                'A8': { spanMax: 28.8, lengthMax: 28.0, lhtMax: 18.9, x: 65, y: 345, w: 310, h: 112, rx: 4, tx: 220, ty: 401, rot: 0, constraint: "", condemns: [] },
+                'A10':{ spanMax: 30.4, lengthMax: 31.5, lhtMax: 19.7, x: 65, y: 460, w: 310, h: 112, rx: 4, tx: 220, ty: 516, rot: -45, constraint: "", condemns: [] },
+                'A3': { spanMax: 35.9, lengthMax: 42.5, lhtMax: 22.5, x: 585, y: 65, w: 310, h: 112, rx: 4, tx: 740, ty: 121, rot: 0, constraint: "", condemns: [] },
+                'A5': { spanMax: 35.9, lengthMax: 42.5, lhtMax: 22.5, x: 585, y: 180, w: 310, h: 112, rx: 4, tx: 740, ty: 236, rot: 0, constraint: "", condemns: [] },
+                'A7': { spanMax: 35.9, lengthMax: 42.5, lhtMax: 22.5, x: 585, y: 295, w: 310, h: 112, rx: 4, tx: 740, ty: 351, rot: 0, constraint: "", condemns: [] },
+                'A9': { spanMax: 35.5, lengthMax: 42.5, lhtMax: 20.0, x: 585, y: 410, w: 310, h: 112, rx: 4, tx: 740, ty: 466, rot: 0, constraint: "", condemns: [] },
+                'A21':{ spanMax: 35.9, lengthMax: 48.5, lhtMax: 22.5, x: 585, y: -50, w: 310, h: 112, rx: 4, tx: 740, ty: 6, rot: 45, constraint: "", condemns: [] },
+                'A11':{ spanMax: 19.0, lengthMax: 19.0, lhtMax: 13.9, x: 585, y: 535, w: 150, h: 54, rx: 3, tx: 660, ty: 562, rot: 0, constraint: "", condemns: [] },
+                'A12':{ spanMax: 19.0, lengthMax: 19.0, lhtMax: 13.9, x: 745, y: 535, w: 150, h: 54, rx: 3, tx: 820, ty: 562, rot: 0, constraint: "Si occupé, condamne A9", condemns: ["A9"] },
+                'B1': { spanMax: 30.4, lengthMax: 32.5, lhtMax: 19.7, x: 65, y: 800, w: 185, h: 84, rx: 3, tx: 157.5, ty: 842, rot: 45, constraint: "", condemns: [] },
+                'B2': { spanMax: 30.4, lengthMax: 31.7, lhtMax: 19.7, x: 260, y: 800, w: 185, h: 84, rx: 3, tx: 352.5, ty: 842, rot: 0, constraint: "", condemns: [] },
+                'B3': { spanMax: 21.4, lengthMax: 27.0, lhtMax: 13.7, x: 455, y: 800, w: 185, h: 84, rx: 3, tx: 547.5, ty: 842, rot: 0, constraint: "", condemns: [] },
+                'D5': { spanMax: 17.0, lengthMax: 18.0, lhtMax: 13.0, x: 1055, y: 585, w: 130, h: 54, rx: 3, tx: 1120, ty: 617, rot: 0, constraint: "", condemns: [] },
+                'D4': { spanMax: 17.0, lengthMax: 18.0, lhtMax: 13.0, x: 1185, y: 650, w: 130, h: 54, rx: 3, tx: 1250, ty: 682, rot: 0, constraint: "", condemns: [] },
+                'D3': { spanMax: 17.0, lengthMax: 18.0, lhtMax: 13.0, x: 1315, y: 650, w: 130, h: 54, rx: 3, tx: 1380, ty: 682, rot: 0, constraint: "", condemns: [] },
+                'D2': { spanMax: 17.0, lengthMax: 18.0, lhtMax: 13.0, x: 1445, y: 650, w: 130, h: 54, rx: 3, tx: 1510, ty: 682, rot: 0, constraint: "", condemns: [] },
+                'D1': { spanMax: 17.0, lengthMax: 18.0, lhtMax: 13.0, x: 1575, y: 650, w: 130, h: 54, rx: 3, tx: 1640, ty: 682, rot: 0, constraint: "", condemns: [] }
+            },
+            aircrafts: {
+                "A320": { cat: "avion", span: 35.81, length: 37.58, mtow: 78.0, incompatiblePush: [] },
+                "B738": { cat: "avion", span: 35.78, length: 39.47, mtow: 79.0, incompatiblePush: [] },
+                "PC12": { cat: "avion", span: 16.25, length: 14.42, mtow: 4.7, incompatiblePush: [] },
+                "EC35": { cat: "helico", span: 10.42, length: 13.08, gear: "patins", mtow: 2.98, incompatiblePush: [] }
+            },
+            pushTractors: {
+                "LEKTRO": { maxMtow: 45 },
+                "MOTOTOK": { maxMtow: 40 },
+                "TPX 100": { maxMtow: 100 },
+                "TPX 200": { maxMtow: 200 }
+            }
+        };
+
+        let AppConfig = JSON.parse(localStorage.getItem('aeropark_config')) || defaultConfig;
+        let regDatabase = JSON.parse(localStorage.getItem('aeropark_regs')) || {};
+        let parkedAircraft = JSON.parse(localStorage.getItem('aeropark_parked')) || {};
+        let aircraftHistory = JSON.parse(localStorage.getItem('aeropark_history')) || [];
+        
+        if (!AppConfig.timezone) AppConfig.timezone = 'UTC+1';
+
+        const cleanOldArchives = () => {
+            const now = new Date().getTime();
+            const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000;
+            let cleaned = false;
+            aircraftHistory = aircraftHistory.filter(item => {
+                if (!item.actualDeparture || item.actualDeparture === 'N/A') return true;
+                const depTime = new Date(item.actualDeparture.replace(' ', 'T') + 'Z').getTime();
+                if (isNaN(depTime)) return true;
+                if (now - depTime > fifteenDaysMs) { cleaned = true; return false; }
+                return true;
+            });
+            if (cleaned) localStorage.setItem('aeropark_history', JSON.stringify(aircraftHistory));
+        };
+        cleanOldArchives();
+
+        let activePreviewType = null;
+        let activePreviewReg = null;
+        let currentFleetCat = 'avion';
+        let currentlyHighlightedStand = null;
+        let currentCondemnedMap = {};
+        
+        let eeClicks = 0, eeTimer;
+
+        for (let code in AppConfig.aircrafts) {
+            let ac = AppConfig.aircrafts[code];
+            if (ac.mototok === '1 palette') ac.mototok = 'Palettes simples';
+            if (ac.mototok === '2 palette') ac.mototok = 'Palettes doubles';
+            ac.mototok = ac.mototok || "Non renseigné"; ac.gpu = ac.gpu || "Non renseigné";
+            if (ac.cat === 'avion') ac.lektro = ac.lektro || "NIL";
+            ac.hydro = ac.hydro || "N/A"; ac.parts = ac.parts || "";
+            if (!ac.incompatiblePush) ac.incompatiblePush = [];
+        }
+        if (!AppConfig.pushTractors) AppConfig.pushTractors = JSON.parse(JSON.stringify(defaultConfig.pushTractors));
+        for (let sId in AppConfig.stands) {
+            if (AppConfig.stands[sId].constraint === undefined) AppConfig.stands[sId].constraint = "";
+            if (AppConfig.stands[sId].lhtMax === undefined) AppConfig.stands[sId].lhtMax = AppConfig.stands[sId].lengthMax;
+            if (AppConfig.stands[sId].condemns === undefined) AppConfig.stands[sId].condemns = [];
+            else if (!Array.isArray(AppConfig.stands[sId].condemns)) AppConfig.stands[sId].condemns = [AppConfig.stands[sId].condemns];
+        }
+
+        function updateCondemnedMap() {
+            currentCondemnedMap = {};
+            for (const [sId, ac] of Object.entries(parkedAircraft)) {
+                const standCfg = AppConfig.stands[sId];
+                if (standCfg && Array.isArray(standCfg.condemns)) {
+                    standCfg.condemns.forEach(target => {
+                        let t = target.trim().toUpperCase();
+                        if (t) { if (!currentCondemnedMap[t]) currentCondemnedMap[t] = []; currentCondemnedMap[t].push(sId); }
+                    });
+                }
+            }
+        }
+
+        const isStandCondemned = (sId) => currentCondemnedMap[sId] !== undefined && currentCondemnedMap[sId].length > 0;
+        const isRegAlreadyParked = (reg) => {
+            if (!reg || reg === 'NO-REG') return false;
+            const clean = reg.trim().toUpperCase();
+            return Object.values(parkedAircraft).some(ac => ac.reg && ac.reg.trim().toUpperCase() === clean);
+        };
+
+        const saveConfig = () => { 
+            localStorage.setItem('aeropark_config', JSON.stringify(AppConfig)); 
+            updateCondemnedMap(); 
+            updateApronDisplay(); 
+            saveToGitHub(); 
+        };
+
+        const saveParked = () => { 
+            localStorage.setItem('aeropark_parked', JSON.stringify(parkedAircraft)); 
+            updateCondemnedMap(); 
+            saveToGitHub(); 
+        };
+
+        const saveHistory = () => { 
+            localStorage.setItem('aeropark_history', JSON.stringify(aircraftHistory)); 
+            saveToGitHub(); 
+        };
+
+        const saveRegDatabase = () => { 
+            localStorage.setItem('aeropark_regs', JSON.stringify(regDatabase)); 
+            saveToGitHub(); 
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTZUI(); updateCondemnedMap(); initApron(); switchTab('sidebar', 'aircraft'); updateApronDisplay(); setDefaultDates();
+        });
+
+        function initApron() {
+            const svgGroup = $('tarmac-stands-svg-group');
+            if (!svgGroup) return;
+            svgGroup.innerHTML = '';
+            for (const [sId, specs] of Object.entries(AppConfig.stands)) {
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('id', `stand-group-${sId}`); g.setAttribute('onclick', `clickStand('${sId}')`);
+                g.addEventListener('mouseenter', (e) => handleTooltipEnter(e, sId)); g.addEventListener('mousemove', moveTooltip); g.addEventListener('mouseleave', hideTooltip);
+
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('id', `stand-rect-${sId}`);
+                rect.setAttribute('x', specs.x); rect.setAttribute('y', specs.y); 
+                rect.setAttribute('width', specs.w); rect.setAttribute('height', specs.h); rect.setAttribute('rx', specs.rx || 4);
+                g.appendChild(rect);
+
+                const iconLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                iconLayer.setAttribute('id', `stand-icon-${sId}`); iconLayer.setAttribute('pointer-events', 'none');
+                g.appendChild(iconLayer);
+
+                const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                text.setAttribute('x', specs.tx); text.setAttribute('y', specs.ty); text.setAttribute('class', 'parking-text');
+                if (specs.rot) text.setAttribute('transform', `rotate(${specs.rot}, ${specs.tx}, ${specs.ty})`);
+                text.textContent = sId; g.appendChild(text); svgGroup.appendChild(g);
+            }
+        }
+
+        function updateApronDisplay() {
+            const occCount = Object.keys(parkedAircraft).length;
+            const condCount = Object.keys(currentCondemnedMap).length;
+            
+            $('stat-free').textContent = Object.keys(AppConfig.stands).length - occCount - condCount;
+            $('stat-occupied').textContent = occCount;
+            $('stat-condemned').textContent = condCount;
+            $('count-active').textContent = occCount;
+            $('count-history').textContent = aircraftHistory.length;
+
+            const previewItem = activePreviewType ? AppConfig.aircrafts[activePreviewType] : null;
+
+            for (const [sId, specs] of Object.entries(AppConfig.stands)) {
+                const ac = parkedAircraft[sId]; const isCondemned = isStandCondemned(sId);
+                const rect = $(`stand-rect-${sId}`); const iconLayer = $(`stand-icon-${sId}`); const group = $(`stand-group-${sId}`);
+                if (!rect || !iconLayer) continue;
+
+                let cssClass = 'parking-box', customFill = '';
+
+                if (previewItem) {
+                    if (ac) customFill = '#1e3a8a'; else if (isCondemned) customFill = '#581c87'; else if (isCompatible(previewItem, sId)) customFill = '#065f46'; else customFill = '#881337'; 
+                } else if (ac) cssClass += ' occupied'; else if (isCondemned) cssClass += ' condemned';
+
+                rect.setAttribute('class', cssClass); rect.style.fill = customFill || '';
+                if (currentlyHighlightedStand === sId) group.classList.add('stand-highlighted'); else group.classList.remove('stand-highlighted');
+
+                if (ac) {
+                    const isHelico = ac.category === 'helico', centerX = specs.x + specs.w / 2, centerY = specs.y + specs.h / 2, maxIconSize = Math.min(specs.w, specs.h) * 0.95, acRot = getStandRotation(sId, ac.d5Orientation);
+                    iconLayer.setAttribute('transform', `translate(${centerX}, ${centerY}) rotate(${acRot}) scale(${maxIconSize / 260})`);
+                    if (isHelico) iconLayer.innerHTML = `<path d="M-15,-70 C-20,-70 -25,-60 -25,-40 L-25,20 C-25,40 -15,50 0,50 C15,50 25,40 25,20 L25,-40 C25,-60 20,-70 15,-70 Z" fill="#bae6fd" opacity="0.3" /><rect x="-5" y="40" width="10" height="80" fill="#bae6fd" opacity="0.3" /><rect x="-25" y="110" width="50" height="8" rx="4" fill="#bae6fd" opacity="0.3" /><circle cx="0" cy="-10" r="100" fill="none" stroke="#bae6fd" stroke-width="6" opacity="0.15" /><path d="M-95,-14 L95,-14 L95,-6 L-95,-6 Z" transform="rotate(45 0 -10)" fill="#bae6fd" opacity="0.2"/><path d="M-95,-14 L95,-14 L95,-6 L-95,-6 Z" transform="rotate(135 0 -10)" fill="#bae6fd" opacity="0.2"/>`;
+                    else iconLayer.innerHTML = `<path d="M0,-120 C15,-120 25,-105 25,-80 L25,-20 L120,30 L120,60 L25,20 L25,90 L50,120 L50,140 L0,125 L-50,140 L-50,120 L-25,90 L-25,20 L-120,60 L-120,30 L-25,-20 L-25,-80 C-25,-105 -15,-120 0,-120 Z" fill="#bae6fd" opacity="0.3" />`;
+                } else if (isCondemned) {
+                    const centerX = specs.x + specs.w / 2, centerY = specs.y + specs.h / 2;
+                    iconLayer.setAttribute('transform', `translate(${centerX}, ${centerY})`);
+                    iconLayer.innerHTML = `<line x1="-25" y1="-25" x2="25" y2="25" stroke="#f43f5e" stroke-width="5" stroke-linecap="round" opacity="0.85"/><line x1="25" y1="-25" x2="-25" y2="25" stroke="#f43f5e" stroke-width="5" stroke-linecap="round" opacity="0.85"/>`;
+                } else iconLayer.innerHTML = '';
+            }
+            updateSidebarList();
+        }
+        
+        function handleTooltipEnter(e, sId) {
+            const ac = parkedAircraft[sId]; const previewItem = activePreviewType ? AppConfig.aircrafts[activePreviewType] : null;
+            showTooltip(e, sId, ac, previewItem, isStandCondemned(sId), currentCondemnedMap[sId]);
+        }
+
+        function showTooltip(e, standId, ac, previewItem, isCondemned, condemningStandsArray) {
+            const t = $('custom-tooltip'), h = $('tooltip-header'), b = $('tooltip-body'), stCfg = AppConfig.stands[standId];
+            let autoCapText = "";
+            if (['A10', 'A11', 'A12', 'B1'].includes(standId)) autoCapText = `<span class="text-amber-300 font-bold"><i class="fa-solid fa-bolt"></i> Autonome permanent</span>`;
+            else if (['A3', 'A5', 'A7', 'A9'].includes(standId)) autoCapText = (ac && !ac.autonomous) ? `<span class="text-rose-300 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> Repoussage nécessaire</span>` : `<span class="text-blue-300 font-bold"><i class="fa-solid fa-circle-check"></i> Autonome (Cat A/B)</span>`;
+            else autoCapText = `<span class="text-slate-300"><i class="fa-solid fa-plane-departure"></i> Standard</span>`;
+
+            let constraintHtml = (stCfg && stCfg.constraint) ? `<div class="text-amber-300 text-[10px] mt-1 pt-1 border-t border-slate-600"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Contrainte : ${stCfg.constraint}</div>` : '';
+
+            if (previewItem && !ac && !isCondemned) {
+                const compat = isCompatible(previewItem, standId);
+                h.innerHTML = `<span class="text-amber-300 font-bold text-sm">Poste ${standId}</span> <span class="${compat ? 'text-emerald-300' : 'text-rose-300'} text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-700">${compat ? 'Éligible' : 'Inéligible'}</span>`;
+                b.innerHTML = `<div><strong>Aperçu :</strong> ${activePreviewType}${activePreviewReg ? ' - ' + activePreviewReg : ''}</div><div class="mt-1 pt-1 border-t border-slate-600">Départ: ${autoCapText}</div>${constraintHtml}`;
+                if (!compat) b.innerHTML += `<div class="text-rose-300 mt-1"><i class="fa-solid fa-triangle-exclamation"></i> Dimensions hors limites</div>`;
+            } else if (previewItem && (ac || isCondemned)) {
+                let reason = ac ? 'Poste déjà occupé' : `Condamné par ${condemningStandsArray ? condemningStandsArray.join(', ') : ''}`;
+                h.innerHTML = `<span class="text-amber-300 font-bold text-sm">Poste ${standId}</span> <span class="text-rose-300 text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-700">${reason}</span>`;
+                b.innerHTML = `<div><strong>Aperçu :</strong> ${activePreviewType}${activePreviewReg ? ' - ' + activePreviewReg : ''}</div><div class="text-rose-300 mt-1"><i class="fa-solid fa-triangle-exclamation"></i> Ce poste n'est pas disponible</div>${constraintHtml}`;
+            } else if (ac) {
+                h.innerHTML = `<span class="text-amber-300 font-bold text-sm">Poste ${standId}</span> <span class="text-blue-300 text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-700">Poste occupé</span> ${getBadge(ac.category)}`;
+                b.innerHTML = `<div><strong>Type:</strong> ${ac.type}</div><div><strong>Immat:</strong> ${ac.reg}</div><div class="mt-1 pt-1 border-t border-slate-600">Départ: ${autoCapText}</div>`;
+                if (['D5', 'B2', 'B3'].includes(standId)) b.innerHTML += `<div class="text-emerald-300 font-bold mt-0.5"><i class="fa-solid fa-arrows-split-up-and-left"></i> ${ac.d5Orientation}</div>`;
+                b.innerHTML += constraintHtml;
+            } else if (isCondemned) {
+                h.innerHTML = `<span class="text-amber-300 font-bold text-sm">Poste ${standId}</span> <span class="text-rose-300 text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-700">Condamné</span>`;
+                b.innerHTML = `<div class="text-rose-300 font-bold mb-1"><i class="fa-solid fa-ban"></i> Condamné par ${condemningStandsArray ? condemningStandsArray.join(', ') : ''}</div><div class="pt-1 border-t border-slate-600 text-slate-300">Indisponible</div>${constraintHtml}`;
+            } else {
+                h.innerHTML = `<span class="text-amber-300 font-bold text-sm">Poste ${standId}</span> <span class="text-emerald-300 text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-700">Libre</span>`;
+                b.innerHTML = `<div class="text-slate-300 mb-1">Cliquez pour affecter</div><div class="pt-1 border-t border-slate-600">Départ: ${autoCapText}</div>${constraintHtml}`;
+            }
+            t.style.display = 'block'; moveTooltip(e);
+        }
+
+        function moveTooltip(e) {
+            const t = $('custom-tooltip'); let x = e.clientX + 15, y = e.clientY + 15;
+            if (x + (t.offsetWidth || 288) > window.innerWidth) x = e.clientX - (t.offsetWidth || 288) - 15;
+            if (y + (t.offsetHeight || 150) > window.innerHeight) y = e.clientY - (t.offsetHeight || 150) - 15;
+            t.style.left = x + 'px'; t.style.top = y + 'px';
+        }
+        function hideTooltip() { $('custom-tooltip').style.display = 'none'; }
+        
+        function launchAppFullscreen() {
+            const el = document.documentElement;
+            const rfs = el.requestFullscreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+            if (rfs) rfs.call(el).catch(()=>{});
+            const launcher = $('app-launcher-overlay');
+            if (launcher) { launcher.style.opacity = '0'; setTimeout(() => launcher.remove(), 300); }
+        }
+
+        function closeApp() {
+            if (confirm("Voulez-vous vraiment fermer l'application ?")) {
+                if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+                window.open('', '_self', ''); window.close();
+                document.body.innerHTML = `<div style="display:flex;flex-direction:column;height:100vh;width:100vw;align-items:center;justify-content:center;background:#0b0f19;color:#94a3b8;font-family:monospace;z-index:999999;position:fixed;top:0;left:0;"><i class="fa-solid fa-plane-arrival" style="font-size:32px;margin-bottom:15px;color:#f59e0b;"></i><div style="font-size:20px;font-weight:bold;color:#f59e0b;margin-bottom:10px;">AÉROPARK ARRÊTÉ</div><div>L'application a été fermée. Vous pouvez fermer cet onglet.</div></div>`;
+            }
+        }
+
+        function exportStandaloneApp() {
+            const dataToExport = { aeropark_config: AppConfig, aeropark_parked: parkedAircraft, aeropark_history: aircraftHistory, aeropark_regs: regDatabase };
+            const dataStr = encodeURIComponent(JSON.stringify(dataToExport));
+            const docClone = document.documentElement.cloneNode(true);
+            
+            docClone.querySelectorAll('.aeropark-injection').forEach(el => el.remove());
+            
+            const overlay = docClone.querySelector('#app-launcher-overlay');
+            if (overlay) overlay.removeAttribute('style');
+            
+            const injection = `<script class="aeropark-injection">
+                (function(){
+                    try {
+                        const data = JSON.parse(decodeURIComponent('${dataStr}'));
+                        for (let k in data) { localStorage.setItem(k, JSON.stringify(data[k])); }
+                    } catch(e) { console.error("Restore failed", e); }
+                })();
+            <\/script>`;
+            
+            let htmlContent = docClone.outerHTML;
+            const bodyCloseTag = '</' + 'body>';
+            htmlContent = htmlContent.replace(bodyCloseTag, injection + '\n' + bodyCloseTag);
+            
+            const blob = new Blob(['<!DOCTYPE html>\n' + htmlContent], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = 'aeropark-lfls-complet.html';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+            showToast("Application complète exportée avec succès !");
+        }
+
+        function requestConfigAccess() {
+            $('config-pin-input').value = ''; openModal('modal-lock'); setTimeout(() => $('config-pin-input').focus(), 100);
+        }
+
+        function verifyConfigPin() {
+            if ($('config-pin-input').value === CONFIG_PIN) { closeModal('modal-lock'); openModal('modal-settings'); } 
+            else { showToast("Code PIN incorrect", "error"); $('config-pin-input').value = ''; }
+        }
+
+        function toggleTZ() { AppConfig.timezone = AppConfig.timezone === 'UTC+1' ? 'UTC+2' : 'UTC+1'; saveConfig(); updateTZUI(); }
+        function updateTZUI() {
+            $$('.tz-label').forEach(el => el.textContent = AppConfig.timezone);
+            const btn = $('tz-settings-btn'); if(btn) btn.textContent = AppConfig.timezone;
+            updateApronDisplay();
+        }
+
+        const getTZOffset = () => AppConfig.timezone === 'UTC+2' ? 2 : 1;
+
+        const getUtcDateString = (dateObj = new Date()) => {
+            return dateObj.toISOString().slice(0, 16);
+        };
+        
+        function setNowUtc(id) {
+            const el = $(id);
+            if(el) {
+                el.value = getUtcDateString();
+                if(el.onchange) el.onchange();
+            }
+        }
+
+        function setDefaultDates() { 
+            if($('ac-arr')) $('ac-arr').value = getUtcDateString(); 
+        }
+
+        function triggerEE() {
+            eeClicks++; clearTimeout(eeTimer); eeTimer = setTimeout(()=>eeClicks=0, 1000);
+            if(eeClicks===5) {
+                eeClicks=0; const e=document.createElement('div');
+                e.innerHTML=`<div style="position:fixed;top:25%;left:-400px;z-index:999999;display:flex;align-items:center;gap:15px;animation:flyby 3.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;"><div style="background:linear-gradient(to right, #f59e0b, #ef4444);color:#fff;padding:8px 24px;font-weight:900;font-size:26px;border-radius:8px;border:3px solid #fff;box-shadow:0 10px 25px rgba(0,0,0,0.5);font-style:italic;white-space:nowrap;transform:skewX(-15deg);"><span style="display:block;transform:skewX(15deg);">MOLIN Maxence</span></div><i class="fa-solid fa-jet-fighter" style="font-size:100px;color:#cbd5e1;filter:drop-shadow(5px 15px 5px rgba(0,0,0,0.4));"></i></div><style>@keyframes flyby { 0%{transform:translateX(0) scale(0.8);} 50%{transform:translateX(50vw) scale(1.4) translateY(-50px);} 100%{transform:translateX(120vw) scale(0.8) translateY(-100px);} }</style>`;
+                document.body.appendChild(e); setTimeout(()=>e.remove(),3500);
+                showToast("Mission Top Gun autorisée, Commandant Maxence !", "success");
+            }
+        }
+
+        const getCompatibleTractorsList = (item) => {
+            if (item.cat === 'helico') return ['Néant / Autonome'];
+            let list = [];
+            for (const [tName, tData] of Object.entries(AppConfig.pushTractors)) {
+                if (item.incompatiblePush && item.incompatiblePush.includes(tName)) continue;
+                if (item.mtow <= tData.maxMtow) { if (tName === 'LEKTRO' && item.lektro === 'NIL') continue; list.push(tName); }
+            }
+            return list.length > 0 ? list : ['Aucun'];
+        };
+
+        const registerImmat = (reg, type) => {
+            if (!reg || !type) return;
+            const cleanReg = reg.trim().toUpperCase(), cleanType = type.trim().toUpperCase();
+            if (cleanReg !== 'NO-REG' && cleanReg.length >= 2 && AppConfig.aircrafts[cleanType]) { regDatabase[cleanReg] = cleanType; saveRegDatabase(); }
+        };
+
+        const getCatOaci = (span) => span < 15 ? 'A' : span < 24 ? 'B' : span < 36 ? 'C' : span < 52 ? 'D' : span < 65 ? 'E' : 'F';
+        
+        const getStandRotation = (sId, orientation) => {
+            if (sId === 'D5') return orientation === 'Nose Out' ? 180 : 0;
+            if (sId === 'B2' || sId === 'B3') return orientation === 'Nose Out' ? 0 : 180;
+            const map = { 'A2': 90, 'A4': 90, 'A6': 90, 'A8': 90, 'A10': 45, 'A3': 90, 'A5': 90, 'A7': 90, 'A9': 90, 'A21': 135, 'A11': 0, 'A12': 0, 'B1': 135, 'D4': 180, 'D3': 180, 'D2': 180, 'D1': 180 };
+            return map[sId] !== undefined ? map[sId] : 0;
+        };
+
+        const isStandEligibleForAuto = (sId, item) => {
+            if (['A10', 'A11', 'A12', 'B1'].includes(sId)) return true;
+            if (['A3', 'A5', 'A7', 'A9'].includes(sId)) return ['A','B'].includes(getCatOaci(item.span));
+            return false;
+        };
+        const isCompatible = (item, sId) => {
+            const lim = AppConfig.stands[sId];
+            return lim && item.span <= lim.spanMax && item.length <= (item.cat === 'helico' ? lim.lhtMax : lim.lengthMax);
+        };
+        const getWarningIfIncompatible = (item, sId) => (!item || isCompatible(item, sId)) ? "" : `<span class="text-[10px] text-rose-300 font-bold bg-rose-900/60 px-1.5 py-0.5 rounded border border-rose-700 ml-1">Hors limites</span>`;
+        const getBadge = (cat) => cat === 'helico' ? `<span class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold"><i class="fa-solid fa-helicopter mr-1"></i>HÉLICO</span>` : `<span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px] font-bold"><i class="fa-solid fa-plane mr-1"></i>AVION</span>`;
+
+        function switchTab(group, tab) {
+            if (group === 'sidebar') {
+                if (tab !== 'aircraft') {
+                    $('sidebar-aircraft-search').value = ''; $('sidebar-aircraft-result').innerHTML = ''; $('push-result-container').innerHTML = '';
+                    activePreviewType = null; activePreviewReg = null;
+                }
+                ['parkings', 'aircraft', 'history'].forEach(t => {
+                    const el = $(`content-sidebar-${t}`); if (el) el.classList.toggle('hidden', t !== tab);
+                });
+                const histBtn = $('tab-sidebar-history-btn');
+                if (tab === 'history') { histBtn.className = "bg-slate-700 text-amber-300 px-3 py-2 rounded-xl font-bold text-xs transition border border-amber-400/50 flex items-center gap-2 shadow"; updateHistoryList(); } 
+                else { histBtn.className = "bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-2 rounded-xl font-bold text-xs transition border border-slate-600 flex items-center gap-2"; }
+                ['parkings', 'aircraft'].forEach(t => {
+                    const btn = $(`tab-sidebar-${t}`);
+                    if (btn) btn.className = (t === tab) ? "flex-1 py-2 rounded-lg bg-slate-700 text-amber-300 shadow transition-all" : "flex-1 py-2 rounded-lg text-slate-300 hover:text-white transition-all";
+                });
+                if (tab !== 'aircraft' && tab !== 'history') { activePreviewType = null; activePreviewReg = null; updateApronDisplay(); }
+            } else if (group === 'settings') {
+                const sPark = $('search-parking-input'); if(sPark) sPark.value = '';
+                const sConst = $('search-constraint-input'); if(sConst) sConst.value = '';
+                const sFleet = $('search-fleet-input'); if(sFleet) sFleet.value = '';
+                const sImmat = $('search-immat-input'); if(sImmat) sImmat.value = '';
+                ['parkings', 'constraints', 'aircrafts', 'immat', 'push'].forEach(t => {
+                    const contentEl = $(`content-settings-${t}`); if (contentEl) contentEl.classList.toggle('hidden', t !== tab);
+                    const btn = $(`tab-settings-${t}`);
+                    if (btn) btn.className = (t === tab) ? "flex-1 py-2 rounded-lg bg-amber-400/20 text-amber-300 border border-amber-400/30 transition-all" : "flex-1 py-2 rounded-lg text-slate-300 hover:bg-slate-700 transition-all";
+                });
+                buildSettingsTables();
+            }
+        }
+
+        function toggleHighlightStand(sId) {
+            $$('.stand-highlighted').forEach(el => el.classList.remove('stand-highlighted'));
+            $$('.sidebar-highlighted').forEach(el => el.classList.remove('sidebar-highlighted', 'border-amber-400'));
+            if (currentlyHighlightedStand !== sId) {
+                const group = $(`stand-group-${sId}`); const sidebarItem = $(`sidebar-item-${sId}`);
+                if (group) group.classList.add('stand-highlighted');
+                if (sidebarItem) { sidebarItem.classList.add('sidebar-highlighted', 'border-amber-400'); sidebarItem.classList.remove('border-slate-700'); }
+                currentlyHighlightedStand = sId;
+            } else currentlyHighlightedStand = null;
+        }
+
+        function clearHighlights() {
+            $$('.stand-highlighted').forEach(el => el.classList.remove('stand-highlighted'));
+            $$('.sidebar-highlighted').forEach(el => el.classList.remove('sidebar-highlighted', 'border-amber-400'));
+            currentlyHighlightedStand = null;
+        }
+
+        function openModal(id) {
+            $('modal-overlay').classList.remove('hidden');
+            const modal = $(id); modal.classList.remove('hidden'); modal.classList.add('flex');
+            if (id === 'modal-settings') buildSettingsTables();
+            if (id === 'modal-add') updateDropdownAdd();
+        }
+
+        function closeModal(id) {
+            const modal = $(id); modal.classList.add('hidden'); modal.classList.remove('flex');
+            const openModals = $$('.fixed.z-50.flex, .fixed.z-\\[60\\].flex, .fixed.z-\\[70\\].flex, .fixed.z-\\[80\\].flex');
+            if (openModals.length === 0) $('modal-overlay').classList.add('hidden');
+            if (id === 'modal-add') {
+                $('ac-type').value = ''; $('ac-reg').value = ''; $('ac-stand').value = ''; $('dropdown-add-lbl').textContent = '-- Sélection Automatique --'; $('ac-specs-preview').classList.add('hidden');
+                $('add-auto-container').classList.add('hidden'); $('add-d5-nose-container').classList.add('hidden'); $('add-b2b3d5-nose-container').classList.add('hidden');
+                $('autocomplete-add').classList.add('hidden'); const autoRegAdd = $('autocomplete-reg-add'); if (autoRegAdd) autoRegAdd.classList.add('hidden');
+            }
+        }
+
+        function updateSidebarList() {
+            const list = $('active-list-container'), searchInput = $('sidebar-parkings-search');
+            const filterQuery = searchInput ? searchInput.value.trim().toUpperCase() : '';
+            if(Object.keys(parkedAircraft).length === 0) { list.innerHTML = `<div class="text-center py-12 text-slate-400 text-[11px] font-mono">Aucun aéronef sur le tarmac.</div>`; return; }
+            list.innerHTML = ''; let countDisplayed = 0;
+
+            for (const [sId, ac] of Object.entries(parkedAircraft)) {
+                if (filterQuery) {
+                    const matchStand = sId.toUpperCase().includes(filterQuery);
+                    const matchReg = ac.reg && ac.reg.toUpperCase().includes(filterQuery);
+                    const matchType = ac.type && ac.type.toUpperCase().includes(filterQuery);
+                    if (!matchStand && !matchReg && !matchType) continue;
+                }
+                countDisplayed++;
+                let fmtArr = ac.arr && ac.arr !== 'N/A' ? ac.arr.replace('T', ' ') : 'N/A';
+                let fmtDep = (ac.dep && ac.dep !== '' && ac.dep !== 'N/A') ? ac.dep.replace('T', ' ') : '--/--';
+                let tag = ac.autonomous ? `<span class="text-amber-300 font-bold ml-1"><i class="fa-solid fa-bolt"></i> Auto</span>` : ``;
+                let d5Tag = (['D5', 'B2', 'B3'].includes(sId) && ac.d5Orientation) ? `<span class="text-emerald-300 font-bold ml-1">📍 ${ac.d5Orientation}</span>` : '';
+                let commentBubble = (ac.comment && ac.comment.trim() !== '') ? `<span class="text-amber-300 ml-2" title="${ac.comment}"><i class="fa-solid fa-comment-dots"></i></span>` : '';
+                const isHighlight = currentlyHighlightedStand === sId;
+                const borderCls = isHighlight ? 'border-amber-400 sidebar-highlighted' : 'border-slate-700';
+
+                list.innerHTML += `
+                    <div id="sidebar-item-${sId}" onclick="toggleHighlightStand('${sId}')" class="cursor-pointer bg-slate-900 border ${borderCls} p-3 rounded-xl font-mono text-[11px] shadow-sm hover:border-amber-400/60 transition">
+                        <div class="flex justify-between items-center mb-2.5">
+                            <div class="flex gap-3 items-center pointer-events-none">
+                                <div class="w-9 h-9 rounded-lg bg-slate-800 border border-slate-600 flex items-center justify-center font-bold text-amber-300 text-sm shadow-inner">${sId}</div>
+                                <div><div class="flex items-center font-bold text-white"><span>${ac.type}${ac.reg ? ' - ' + ac.reg : ''}</span> ${tag} ${d5Tag} ${commentBubble}</div><div class="text-slate-300">${ac.reg}</div></div>
+                            </div>
+                            <button onclick="event.stopPropagation(); clickStand('${sId}')" class="text-slate-400 hover:text-amber-300 transition p-2"><i class="fa-solid fa-pen"></i></button>
+                        </div>
+                        <div class="flex gap-2 text-[10px] bg-slate-800/80 p-2 rounded-lg border border-slate-700 pointer-events-none">
+                            <div class="flex-1"><span class="text-slate-400 block mb-0.5">ARRIVÉE UTC (loc:${AppConfig.timezone})</span><span class="text-slate-200">${fmtArr}</span></div><div class="flex-1"><span class="text-slate-400 block mb-0.5">DÉPART UTC (loc:${AppConfig.timezone})</span><span class="text-slate-200">${fmtDep}</span></div>
+                        </div>
+                    </div>`;
+            }
+            if (countDisplayed === 0 && filterQuery) list.innerHTML = `<div class="text-center py-8 text-slate-400 text-[11px] font-mono">Aucun résultat pour "${filterQuery}".</div>`;
+        }
+
+        function updateHistoryList() {
+            const hList = $('history-list-container'), searchInput = $('sidebar-history-search');
+            const filterQuery = searchInput ? searchInput.value.trim().toUpperCase() : '';
+            if (aircraftHistory.length === 0) { hList.innerHTML = `<div class="text-center py-12 text-slate-400 text-[11px] font-mono">Dossier archivé vide.</div>`; return; }
+
+            let validHistory = aircraftHistory;
+            if (filterQuery) {
+                validHistory = aircraftHistory.filter(item => (item.reg && item.reg.toUpperCase().includes(filterQuery)) || (item.type && item.type.toUpperCase().includes(filterQuery)) || (item.stand && item.stand.toUpperCase().includes(filterQuery)));
+            }
+            if (validHistory.length === 0) { hList.innerHTML = `<div class="text-center py-12 text-slate-400 text-[11px] font-mono">Aucun résultat.</div>`; return; }
+
+            hList.innerHTML = '';
+            validHistory.slice().reverse().forEach((item) => {
+                const origIdx = aircraftHistory.indexOf(item);
+                let fmtArr = item.arr && item.arr !== 'N/A' ? item.arr.replace('T', ' ') : 'N/A';
+                let actualDep = item.actualDeparture ? item.actualDeparture.replace('T', ' ') : 'N/A';
+                hList.innerHTML += `
+                    <div onclick="openHistoryDetail(${origIdx})" class="cursor-pointer bg-slate-900 border border-slate-700 hover:border-amber-400/60 p-3 rounded-xl font-mono text-[11px] space-y-2 transition shadow-sm">
+                        <div class="flex justify-between items-center"><div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold text-[10px] border border-amber-400/40">Poste ${item.stand}</span><strong class="text-white">${item.type}</strong></div><span class="text-slate-300 text-[10px]">${item.reg}</span></div>
+                        <div class="grid grid-cols-2 gap-2 text-[10px] bg-slate-800/80 p-2 rounded-lg border border-slate-700 text-slate-200"><div><span class="text-slate-400 block">Arrivée</span>${fmtArr}</div><div><span class="text-slate-400 block">Départ Effectif</span>${actualDep}</div></div>
+                    </div>`;
+            });
+        }
+
+        function openHistoryDetail(idx) {
+            const item = aircraftHistory[idx]; if (!item) return;
+            const info = item.specs || {}, isH = item.category === 'helico', catOaci = getCatOaci(info.span || 0);
+            let fmtArr = item.arr && item.arr !== 'N/A' ? item.arr.replace('T', ' ') : 'N/A';
+            let fmtDep = item.dep && item.dep !== 'N/A' ? item.dep.replace('T', ' ') : 'N/A';
+            let actDep = item.actualDeparture ? item.actualDeparture.replace('T', ' ') : 'N/A';
+
+            $('history-detail-content').innerHTML = `
+                <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-3">
+                    <div class="flex justify-between items-center border-b border-slate-700 pb-2"><span class="text-amber-300 font-bold text-sm">${item.type} (${item.reg})</span>${getBadge(item.category)}</div>
+                    <div class="grid grid-cols-2 gap-2 text-slate-200">
+                        <div class="bg-slate-800 p-2 rounded"><span class="block text-[9px] text-slate-400 uppercase">Poste Occupé</span>Poste ${item.stand}</div><div class="bg-slate-800 p-2 rounded"><span class="block text-[9px] text-slate-400 uppercase">Cat OACI</span>Code ${catOaci}</div>
+                        <div class="bg-slate-800 p-2 rounded"><span class="block text-[9px] text-slate-400 uppercase">${isH?'Rotor':'Envergure'}</span>${info.span || '?'}m</div><div class="bg-slate-800 p-2 rounded"><span class="block text-[9px] text-slate-400 uppercase">${isH?'LHT':'Longueur'}</span>${info.length || '?'}m</div>
+                        ${isH ? `<div class="bg-slate-800 p-2 rounded"><span class="block text-[9px] text-slate-400 uppercase">T/A</span>${info.gear || 'patins'}</div>` : `<div class="bg-slate-800 p-2 rounded"><span class="block text-[9px] text-slate-400 uppercase">Lektro</span>${info.lektro || 'NIL'}</div>`}
+                        <div class="bg-slate-800 p-2 rounded"><span class="block text-[9px] text-slate-400 uppercase">MTOW</span>${info.mtow || '?'}T</div>
+                    </div>
+                    <div class="border-t border-slate-700 pt-2 space-y-1 text-slate-200"><div><strong>Arrivée :</strong> ${fmtArr}</div><div><strong>Départ Prévu :</strong> ${fmtDep}</div><div><strong>Départ Effectif :</strong> ${actDep}</div>${item.comment ? `<div><strong>Commentaire :</strong> ${item.comment}</div>` : ''}</div>
+                </div>`;
+            openModal('modal-history-detail');
+        }
+
+        function clearHistory() {
+            if (confirm("Vider tout le dossier des appareils archivés ?")) { aircraftHistory = []; saveHistory(); updateHistoryList(); updateApronDisplay(); showToast("Dossier archivé vidé"); }
+        }
+
+        function handleSearchReg(mode, val) {
+            const q = val.trim().toUpperCase(), listId = mode === 'add' ? 'autocomplete-reg-add' : `auto-reg-direct-${mode}`, container = $(listId);
+            if (regDatabase[q]) {
+                const mappedType = regDatabase[q];
+                if (mode === 'add') {
+                    const currentType = $('ac-type').value.trim().toUpperCase();
+                    if (currentType && currentType !== mappedType) showToast(`Type corrigé pour ${q} : ${mappedType}`, "info");
+                    $('ac-type').value = mappedType; processAddFormContext(mappedType);
+                } else if (mode !== 'immat-add' && mode !== 'sidebar') {
+                    const currentType = $(`direct-input-${mode}`).value.trim().toUpperCase();
+                    if (currentType && currentType !== mappedType) showToast(`Type corrigé pour ${q} : ${mappedType}`, "info");
+                    $(`direct-input-${mode}`).value = mappedType; processDirectFormContext(mode, mappedType);
+                }
+            }
+            if (!container) return;
+            if (!q) { container.classList.add('hidden'); return; }
+            const matches = Object.keys(regDatabase).filter(reg => reg.includes(q));
+            if (matches.length === 0) { container.classList.add('hidden'); return; }
+
+            container.innerHTML = matches.map(regKey => `<div class="px-4 py-2 border-b border-slate-600 font-mono text-[10px] flex justify-between items-center cursor-pointer hover:bg-slate-600" onclick="selectRegSearch('${mode}', '${regKey}', '${regDatabase[regKey]}')"><span class="font-bold text-amber-300 text-xs">${regKey}</span><span class="text-slate-300 font-bold px-2 py-0.5 rounded bg-slate-800 border border-slate-600">${regDatabase[regKey]}</span></div>`).join('');
+            container.classList.remove('hidden');
+        }
+
+        function selectRegSearch(mode, reg, typeCode) {
+            const container = $(mode === 'add' ? 'autocomplete-reg-add' : `auto-reg-direct-${mode}`);
+            if (container) container.classList.add('hidden');
+            if (mode === 'add') { $('ac-reg').value = reg; $('ac-type').value = typeCode; processAddFormContext(typeCode); } 
+            else { $(`direct-reg-${mode}`).value = reg; $(`direct-input-${mode}`).value = typeCode; processDirectFormContext(mode, typeCode); }
+        }
+
+        function handleSearch(mode, val) {
+            const q = val.trim().toUpperCase();
+            if (mode.startsWith('immat-type-edit-')) {
+                const regKey = mode.replace('immat-type-edit-', ''), autoContainer = $(`auto-immat-edit-${regKey}`);
+                if (!autoContainer) return;
+                if (!q) { autoContainer.classList.add('hidden'); return; }
+                const matches = Object.keys(AppConfig.aircrafts).filter(k => k.includes(q)).sort((a,b) => a.localeCompare(b));
+                if (matches.length === 0) { autoContainer.classList.add('hidden'); return; }
+                autoContainer.innerHTML = matches.map(code => `<div class="px-3 py-1.5 border-b border-slate-600 font-mono text-[10px] flex justify-between items-center cursor-pointer hover:bg-slate-600" onclick="selectConfigImmatType('${regKey}', '${code}')"><strong class="text-amber-300 text-xs">${code}</strong><span class="text-slate-300 text-[9px]">${AppConfig.aircrafts[code].cat}</span></div>`).join('');
+                autoContainer.classList.remove('hidden'); return;
+            }
+
+            const listId = mode === 'sidebar' ? 'autocomplete-sidebar' : mode === 'add' ? 'autocomplete-add' : mode === 'immat-add' ? 'auto-direct-immat-add' : `auto-direct-${mode}`;
+            const container = $(listId); if (!container) return;
+
+            if (!q) { 
+                container.classList.add('hidden'); 
+                if(mode==='sidebar') { activePreviewType=null; activePreviewReg=null; $('push-result-container').innerHTML = ''; updateApronDisplay(); } 
+                return; 
+            }
+            
+            if (mode === 'sidebar') {
+                let itemsList = [];
+                const sortedCodes = Object.keys(AppConfig.aircrafts).sort((a,b) => a.localeCompare(b));
+                for (const code of sortedCodes) { if (code.includes(q)) itemsList.push({ type: code, reg: null }); }
+                for (const [regKey, typeVal] of Object.entries(regDatabase)) { if (regKey.includes(q) && AppConfig.aircrafts[typeVal]) itemsList.push({ type: typeVal, reg: regKey }); }
+                
+                if (itemsList.length === 0) { container.classList.add('hidden'); return; }
+
+                container.innerHTML = itemsList.map(entry => {
+                    const code = entry.type, item = AppConfig.aircrafts[code], regLabel = entry.reg ? `<span class="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-mono text-[10px] border border-amber-400/40 ml-2">${entry.reg}</span>` : '';
+                    return `<div class="px-4 py-2 border-b border-slate-600 font-mono text-[10px] flex justify-between items-center cursor-pointer hover:bg-slate-600" onclick="selectSearch('sidebar', '${code}', ${entry.reg ? `'${entry.reg}'` : 'null'})"><span class="flex items-center"><strong class="text-amber-300 text-xs mr-1">${code}</strong> (${item.cat}) ${regLabel}</span><span>${item.cat === 'helico' ? 'Rotor' : 'Env'}: ${item.span}m</span></div>`;
+                }).join('');
+                container.classList.remove('hidden'); return;
+            }
+
+            let matches = Object.keys(AppConfig.aircrafts).filter(k => k.includes(q)).sort((a,b) => a.localeCompare(b));
+            if (matches.length === 0) { container.classList.add('hidden'); return; }
+
+            // MODIFICATION ICI : On a retiré le calcul et l'affichage des immatriculations pour la recherche du Type OACI
+            container.innerHTML = matches.map(code => {
+                const item = AppConfig.aircrafts[code];
+                let compatHtml = '', clickHandler = `onclick="selectSearch('${mode}', '${code}')"`, cursorCls = 'cursor-pointer hover:bg-slate-600';
+
+                if (mode !== 'add' && mode !== 'immat-add') {
+                    const compat = isCompatible(item, mode), occ = parkedAircraft[mode], cond = isStandCondemned(mode);
+                    if (!compat || occ || cond) {
+                        compatHtml = `<span class="text-[9px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 ml-2">${!compat ? 'INCOMPATIBLE' : (occ ? 'OCCUPÉ' : 'CONDAMNÉ')}</span>`;
+                        clickHandler = ''; cursorCls = 'cursor-not-allowed bg-slate-800/50 text-slate-400';
+                    } else compatHtml = `<span class="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 ml-2">COMPATIBLE</span>`;
+                }
+                return `<div class="px-4 py-2 border-b border-slate-600 font-mono text-[10px] flex justify-between items-center ${cursorCls}" ${clickHandler}><span class="flex items-center"><strong class="text-amber-300 text-xs mr-1">${code}</strong> (${item.cat}) ${compatHtml}</span><span>${item.cat === 'helico' ? 'Rotor' : 'Env'}: ${item.span}m</span></div>`;
+            }).join('');
+            container.classList.remove('hidden');
+        }
+
+        function selectConfigImmatType(regKey, code) {
+            const input = $(`type-immat-${regKey}`); if (input) input.value = code;
+            const autoContainer = $(`auto-immat-edit-${regKey}`); if (autoContainer) autoContainer.classList.add('hidden');
+            updateImmatEntry(regKey, regKey, code);
+        }
+
+        function selectSearch(mode, code, regFound = null) {
+            const dropdownEl = $(mode === 'sidebar' ? 'autocomplete-sidebar' : mode === 'add' ? 'autocomplete-add' : mode === 'immat-add' ? 'auto-direct-immat-add' : `auto-direct-${mode}`);
+            if (dropdownEl) dropdownEl.classList.add('hidden');
+            
+            if (mode === 'sidebar') {
+                activePreviewReg = regFound; $('sidebar-aircraft-search').value = activePreviewReg ? `${code} - ${activePreviewReg}` : code;
+                activePreviewType = code; updateApronDisplay();
+                const item = AppConfig.aircrafts[code], isH = item.cat === 'helico';
+                
+                $('sidebar-aircraft-result').innerHTML = `
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-3 font-mono text-xs shadow-md">
+                        <div class="flex justify-between items-center border-b border-slate-700 pb-2"><div><strong class="text-amber-300 text-sm">${code}</strong>${activePreviewReg ? `<span class="ml-2 text-white font-bold bg-slate-800 px-2 py-0.5 rounded border border-slate-600">${activePreviewReg}</span>` : ''}</div>${getBadge(item.cat)}</div>
+                        <div class="grid grid-cols-2 gap-2 text-slate-200">
+                            <div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">${isH?'Rotor':'Envergure'}</span>${item.span}m</div><div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">${isH?'LHT':'Longueur'}</span>${item.length}m</div>
+                            <div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">Cat OACI</span>Code ${getCatOaci(item.span)}</div><div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">MTOW</span>${item.mtow}T</div>
+                            ${isH ? `<div class="bg-slate-800 p-2 rounded text-center col-span-2"><span class="block text-[9px] text-slate-400 uppercase">T/A</span><strong class="text-emerald-300 uppercase">${item.gear || 'patins'}</strong></div>` : ''}
+                        </div>
+                        <div class="border-t border-slate-700 pt-2 space-y-2 text-slate-200">
+                            ${!isH ? `<div class="flex justify-between bg-slate-800 p-2 rounded"><span class="text-slate-400">Lektro :</span><strong class="text-amber-300">${item.lektro || 'NIL'}</strong></div>` : ''}
+                            <div class="flex justify-between bg-slate-800 p-2 rounded"><span class="text-slate-400">Mototok :</span><strong class="text-amber-300">${item.mototok || 'Non renseigné'}</strong></div>
+                            <div class="flex justify-between bg-slate-800 p-2 rounded"><span class="text-slate-400">GPU :</span><strong class="text-amber-300">${item.gpu || 'Non renseigné'}</strong></div>
+                            <div class="bg-slate-800 p-2 rounded"><span class="text-slate-400 block text-[9px] mb-0.5">Hydraulique train avant :</span><span class="text-slate-100">${item.hydro || 'N/A'}</span></div>
+                            ${item.parts ? `<div class="bg-slate-800 p-2 rounded"><span class="text-slate-400 block text-[9px] mb-0.5">Particularités :</span><span class="text-slate-100">${item.parts}</span></div>` : ''}
+                        </div>
+                    </div>`;
+                renderPushResult(code);
+            } else if (mode === 'add') { $('ac-type').value = code; processAddFormContext(code); } 
+            else if (mode === 'immat-add') { $('new-immat-type').value = code; } 
+            else { $(`direct-input-${mode}`).value = code; processDirectFormContext(mode, code); }
+        }
+
+        function processAddFormContext(code) {
+            const item = AppConfig.aircrafts[code], prev = $('ac-specs-preview'), stand = $('ac-stand').value;
+            updateDropdownAdd(code);
+            if(item) {
+                const isH = item.cat === 'helico';
+                prev.innerHTML = `<div class="flex gap-2 items-center mb-1"><strong class="text-amber-300">${code}</strong> ${getBadge(item.cat)}</div><div class="text-slate-300 flex justify-between items-center"><span>${isH?'Rotor':'Env'}: ${item.span}m</span> <span>${isH?'LHT':'Long'}: ${item.length}m</span> <span>MTOW: ${item.mtow}T</span></div>${isH?`<div class="mt-1 pt-1 border-t border-slate-700 text-[11px]">Type d'atterrissage (T/A) : <strong class="text-emerald-300 uppercase">${item.gear || 'patins'}</strong></div>`:''}`;
+                prev.classList.remove('hidden'); evalStandOptions(stand, item, 'add');
+            } else { prev.classList.add('hidden'); evalStandOptions('', null, 'add'); }
+        }
+
+        function updateDropdownAdd(code = '') {
+            const list = $('dropdown-add'), item = AppConfig.aircrafts[code];
+            list.innerHTML = `<div class="px-4 py-3 text-xs text-amber-300 hover:bg-slate-600 cursor-pointer border-b border-slate-600 font-mono" onclick="setStandAdd('', '-- Sélection Automatique --')"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i>-- Sélection Automatique --</div>`;
+            for (const [sId, lim] of Object.entries(AppConfig.stands)) {
+                const occ = parkedAircraft[sId], cond = isStandCondemned(sId), compat = item ? isCompatible(item, sId) : true;
+                let w = getWarningIfIncompatible(item, sId), a = ['A10','A11','A12','B1'].includes(sId) ? `<span class="text-amber-300 font-bold ml-2">[Départ autonome]</span>` : '';
+                let clickAction = '', statusText = '', rowCls = '';
+                if (occ) { statusText = 'Occupé'; rowCls = 'opacity-40 text-slate-400 cursor-not-allowed'; }
+                else if (cond) { statusText = 'Condamné'; rowCls = 'opacity-40 text-rose-300 cursor-not-allowed'; }
+                else if (!compat) { statusText = 'Incompatible'; rowCls = 'opacity-40 text-rose-300 cursor-not-allowed'; }
+                else { statusText = 'Libre'; rowCls = 'cursor-pointer hover:bg-slate-600 text-slate-100'; clickAction = `onclick="setStandAdd('${sId}', 'Poste ${sId}')"`; }
+                list.innerHTML += `<div class="px-4 py-3 text-xs font-mono flex justify-between ${rowCls} border-b border-slate-600" ${clickAction}><span>Poste <strong>${sId}</strong>${a}${w}</span><span class="${!compat || cond ? 'text-rose-300' : (occ ? 'text-slate-400' : 'text-emerald-300')}">${statusText}</span></div>`;
+            }
+        }
+
+        function setStandAdd(sId, lbl) {
+            const code = $('ac-type').value.trim().toUpperCase(), item = AppConfig.aircrafts[code];
+            if (item && sId && (!isCompatible(item, sId) || isStandCondemned(sId))) return showToast("Poste indisponible ou incompatible", "error");
+            $('ac-stand').value = sId; $('dropdown-add-lbl').textContent = lbl; $('dropdown-add').classList.add('hidden'); evalStandOptions(sId, item, 'add');
+        }
+
+        function evalStandOptions(sId, item, mode) {
+            const pfx = mode === 'add' ? 'add' : `dir-${sId}`, autoCont = $(`${pfx}-auto-container`), autoLbl = $(`${pfx}-auto-label`);
+            const radTrue = document.querySelector(`input[name="${pfx}-auto"][value="true"]`), radFalse = document.querySelector(`input[name="${pfx}-auto"][value="false"]`);
+            const d5Cont = $(`${pfx}-d5-nose-container`), b2b3d5Cont = $(`${pfx}-b2b3d5-nose-container`);
+
+            if(d5Cont) d5Cont.classList.add('hidden');
+            if(b2b3d5Cont) b2b3d5Cont.classList.toggle('hidden', !['D5', 'B2', 'B3'].includes(sId));
+
+            if (item && sId && ['A3', 'A5', 'A7', 'A9'].includes(sId)) {
+                autoCont.classList.remove('hidden');
+                if (isStandEligibleForAuto(sId, item)) {
+                    autoLbl.innerHTML = `<i class="fa-solid fa-check text-emerald-300"></i> Éligible Départ Autonome`; autoLbl.className = "text-[10px] font-bold uppercase text-emerald-300";
+                    if(radTrue) { radTrue.disabled = false; radTrue.checked = true; }
+                } else {
+                    autoLbl.innerHTML = `<i class="fa-solid fa-xmark text-rose-300"></i> Tracteur Obligatoire (> B)`; autoLbl.className = "text-[10px] font-bold uppercase text-rose-300";
+                    if(radTrue) { radTrue.disabled = true; radFalse.checked = true; }
+                }
+            } else if(autoCont) autoCont.classList.add('hidden');
+        }
+
+        function submitAircraft() {
+            let type = $('ac-type').value.trim().toUpperCase(), reg = $('ac-reg').value.trim().toUpperCase() || `NO-REG`;
+            let arr = $('ac-arr').value || 'N/A', dep = $('ac-dep').value || 'N/A';
+            let stand = $('ac-stand').value;
+
+            if (reg !== 'NO-REG' && regDatabase[reg]) {
+                const expectedType = regDatabase[reg];
+                if (type && type !== expectedType) { showToast(`Type corrigé via config (forcé: ${expectedType})`, "error"); type = expectedType; $('ac-type').value = expectedType; } else type = expectedType;
+            }
+            if (!type) return showToast("Code OACI requis", "error");
+            if (reg !== 'NO-REG' && isRegAlreadyParked(reg)) return showToast(`Immatriculation ${reg} déjà garée`, "error");
+
+            const info = AppConfig.aircrafts[type] || { cat: 'avion', span: 99, length: 99, mtow: 0 };
+            
+            if (!stand) {
+                stand = Object.keys(AppConfig.stands).find(s => !parkedAircraft[s] && !isStandCondemned(s) && isCompatible(info, s));
+                if (!stand) return showToast("Aucun poste compatible libre", "error");
+            } else if (parkedAircraft[stand]) return showToast("Poste occupé", "error");
+            else if (isStandCondemned(stand)) return showToast("Poste condamné", "error");
+            else if (!isCompatible(info, stand)) return showToast("Aéronef incompatible", "error");
+
+            let isAuto = ['A10', 'A11', 'A12', 'B1'].includes(stand);
+            if (['A3', 'A5', 'A7', 'A9'].includes(stand) && isStandEligibleForAuto(stand, info)) isAuto = document.querySelector('input[name="add-auto"]:checked')?.value === 'true';
+            let orientationO = ['D5', 'B2', 'B3'].includes(stand) ? (document.querySelector('input[name="add-d5-nose-container"] input[name="add-d5"]:checked')?.value || document.querySelector('input[name="add-b2b3d5"]:checked')?.value || 'Nose In') : null;
+
+            registerImmat(reg, type);
+            parkedAircraft[stand] = { type, reg, category: info.cat, specs: info, arr, dep, autonomous: isAuto, d5Orientation: orientationO, comment: '' };
+            saveParked(); closeModal('modal-add'); updateApronDisplay(); showToast(`Garé en ${stand}`);
+        }
+
+        function clickStand(sId) {
+            clearHighlights();
+            const previewItem = activePreviewType ? AppConfig.aircrafts[activePreviewType] : null, ac = parkedAircraft[sId], isCond = isStandCondemned(sId);
+            
+            if (previewItem && !isCompatible(previewItem, sId)) return showToast("Poste incompatible", "error");
+            if (previewItem && (ac || isCond)) return showToast(ac ? "Poste occupé" : "Poste condamné", "error");
+
+            $('modal-stand-id').textContent = sId;
+            const c = $('stand-content'), a = $('stand-actions'), standLimits = AppConfig.stands[sId], stCfg = AppConfig.stands[sId];
+            
+            if (ac) {
+                const info = ac.specs || AppConfig.aircrafts[ac.type] || { cat: ac.category || 'avion', span: 0, length: 0, mtow: 0 };
+                const catOaci = getCatOaci(info.span), tractors = getCompatibleTractorsList(info).join(', '), isH = info.cat === 'helico';
+
+                let standOptionsHtml = `<select id="edit-stand-target" onchange="changeAircraftStand('${sId}', this.value)" class="w-full bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs focus:border-amber-400">`;
+                for (const [targetSId, lim] of Object.entries(AppConfig.stands)) {
+                    if (!parkedAircraft[targetSId] && targetSId !== sId && !isStandCondemned(targetSId) && isCompatible(info, targetSId)) standOptionsHtml += `<option value="${targetSId}">Poste ${targetSId} (Max ${lim.spanMax}m)</option>`;
+                    else if (targetSId === sId) standOptionsHtml += `<option value="${targetSId}" selected>Poste ${targetSId} (Max ${lim.spanMax}m)</option>`;
+                }
+                standOptionsHtml += `</select>`;
+
+                let b2b3d5Html = ['D5', 'B2', 'B3'].includes(sId) ? `<div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-amber-300 uppercase mb-2 block"><i class="fa-solid fa-arrows-split-up-and-left"></i> Orientation (${sId})</label><div class="flex gap-4 font-mono text-xs"><label class="cursor-pointer flex items-center gap-2"><input type="radio" name="edit-b2b3d5" value="Nose In" ${ac.d5Orientation==='Nose In'?'checked':''} onchange="updateAc('${sId}')" class="text-amber-400"> Nose In</label><label class="cursor-pointer flex items-center gap-2"><input type="radio" name="edit-b2b3d5" value="Nose Out" ${ac.d5Orientation==='Nose Out'?'checked':''} onchange="updateAc('${sId}')" class="text-amber-400"> Nose Out</label></div></div>` : '';
+                
+                let autoHtml = '';
+                if (['A3', 'A5', 'A7', 'A9'].includes(sId)) {
+                    if (isStandEligibleForAuto(sId, info)) autoHtml = `<div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-emerald-300 uppercase mb-2 block">Option de Départ</label><div class="flex gap-4 font-mono text-xs"><label class="cursor-pointer flex items-center gap-2"><input type="radio" name="edit-auto" value="true" ${ac.autonomous?'checked':''} onchange="updateAc('${sId}')" class="text-amber-400"> Autonome</label><label class="cursor-pointer flex items-center gap-2"><input type="radio" name="edit-auto" value="false" ${!ac.autonomous?'checked':''} onchange="updateAc('${sId}')" class="text-amber-400"> Tracteur</label></div></div>`;
+                    else autoHtml = `<div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-[10px] font-bold text-rose-300 uppercase"><i class="fa-solid fa-lock"></i> Tracteur Obligatoire (Cat > B)</div>`;
+                } else if (['A10', 'A11', 'A12', 'B1'].includes(sId)) autoHtml = `<div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-[10px] font-bold text-amber-300 uppercase"><i class="fa-solid fa-bolt"></i> Départ Autonome Permanent</div>`;
+
+                let constraintAlert = (stCfg && stCfg.constraint) ? `<div class="bg-amber-950/40 border border-amber-400/40 rounded-xl p-3 text-amber-300 text-xs flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i> <span><strong>Contrainte :</strong> ${stCfg.constraint}</span></div>` : '';
+
+                c.innerHTML = `
+                    <div class="bg-blue-950/50 border border-blue-500/40 rounded-xl p-4 flex justify-between items-center"><div class="font-bold text-blue-300 text-xs tracking-widest uppercase">Poste Occupé</div><div class="text-[10px] text-slate-300 font-mono">Max: ${standLimits.spanMax}m x ${standLimits.lengthMax}m / LHT: ${standLimits.lhtMax !== undefined ? standLimits.lhtMax : standLimits.lengthMax}m</div></div>
+                    ${constraintAlert}
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-2"><label class="text-[10px] font-bold text-slate-300 uppercase block"><i class="fa-solid fa-exchange-alt text-amber-300 mr-1"></i> Changer de poste</label>${standOptionsHtml}</div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-3 font-mono text-xs">
+                        <div class="text-[10px] font-bold text-amber-300 uppercase tracking-wider border-b border-slate-700 pb-1 flex items-center gap-2"><i class="fa-solid fa-circle-info"></i> Caractéristiques techniques</div>
+                        <div class="grid grid-cols-3 gap-2 text-slate-200">
+                            <div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">${isH?'Rotor':'Envergure'}</span>${info.span}m</div><div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">${isH?'LHT':'Longueur'}</span>${info.length}m</div><div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">Cat. OACI</span>Code ${catOaci}</div>
+                        </div>
+                        <div class="grid grid-cols-${isH?'3':'2'} gap-2 text-slate-200">
+                            <div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">MTOW</span>${info.mtow}T</div>
+                            ${isH ? `<div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">T/A</span><strong class="text-emerald-300 uppercase">${info.gear || 'patins'}</strong></div>` : ''}
+                            <div class="bg-slate-800 p-2 rounded text-center ${isH?'col-span-3':''}"><span class="block text-[9px] text-slate-400 uppercase">Push Adapté(s)</span><strong class="text-emerald-300">${tractors}</strong></div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Aéronef</label><div class="font-bold text-white text-sm">${ac.type} ${getBadge(ac.category)}</div></div>
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Immatriculation</label><input type="text" id="edit-reg" value="${ac.reg}" onchange="updateAc('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs uppercase focus:border-amber-400"></div>
+                    </div>
+                    ${b2b3d5Html} ${autoHtml}
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Arrivée UTC (loc:<span class="tz-label">${AppConfig.timezone}</span>)</label><div class="flex gap-2"><input type="datetime-local" id="edit-arr" value="${ac.arr}" onchange="updateAc('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2 py-2 text-white font-mono text-xs focus:border-amber-400"><button type="button" onclick="setNowUtc('edit-arr'); updateAc('${sId}')" title="Heure actuelle UTC" class="bg-slate-700 hover:bg-amber-400 hover:text-slate-900 text-slate-300 px-3 py-2 rounded-lg transition"><i class="fa-solid fa-clock"></i></button></div></div>
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Départ Prévu UTC (loc:<span class="tz-label">${AppConfig.timezone}</span>)</label><div class="flex gap-2"><input type="datetime-local" id="edit-dep" value="${ac.dep}" onchange="updateAc('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2 py-2 text-white font-mono text-xs focus:border-amber-400"><button type="button" onclick="setNowUtc('edit-dep'); updateAc('${sId}')" title="Heure actuelle UTC" class="bg-slate-700 hover:bg-amber-400 hover:text-slate-900 text-slate-300 px-3 py-2 rounded-lg transition"><i class="fa-solid fa-clock"></i></button></div></div>
+                    </div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-300 uppercase mb-1 block"><i class="fa-solid fa-comment-dots text-amber-300 mr-1"></i> Notification</label><textarea id="edit-comment" oninput="updateAc('${sId}')" rows="2" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs focus:border-amber-400 resize-none">${ac.comment || ''}</textarea></div>`;
+                
+                a.innerHTML = `<button onclick="openDepartModal('${sId}')" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center gap-2"><i class="fa-solid fa-plane-up"></i> Libérer</button><button onclick="updateAc('${sId}'); closeModal('modal-stand'); showToast('Modifications enregistrées');" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center gap-2"><i class="fa-solid fa-check"></i> Enregistrer & Fermer</button>`;
+            } else if (isCond) {
+                const sourceStands = currentCondemnedMap[sId] || [];
+                let constraintInfo = (stCfg && stCfg.constraint) ? `<div class="text-xs text-amber-300 font-mono bg-slate-900 p-3 rounded-lg border border-slate-700 mb-2">Contrainte : ${stCfg.constraint}</div>` : '';
+                c.innerHTML = `<div class="bg-rose-950/50 border border-rose-500/50 rounded-xl p-5 text-center space-y-3"><div class="text-rose-300 font-bold text-sm uppercase tracking-wider"><i class="fa-solid fa-ban text-lg mr-2"></i> Poste Condamné</div><p class="text-slate-200 text-xs font-mono">Le poste <strong>${sId}</strong> est condamné par l'occupation de : <strong>${sourceStands.join(', ')}</strong>.</p>${constraintInfo}</div>`;
+                a.innerHTML = `<button onclick="closeModal('modal-stand')" class="w-full bg-slate-700 hover:bg-slate-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs">Fermer</button>`;
+            } else {
+                const nowUtcStr = getUtcDateString();
+                let b2b3d5Html = ['D5', 'B2', 'B3'].includes(sId) ? `<div id="dir-${sId}-b2b3d5-nose-container" class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-2"><label class="text-[10px] font-bold uppercase text-amber-300 flex items-center gap-1.5"><i class="fa-solid fa-arrows-split-up-and-left"></i> Orientation (${sId})</label><div class="flex items-center gap-4 text-xs font-mono"><label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="dir-${sId}-b2b3d5" value="Nose In" checked class="text-amber-400"> <span>Nose In</span></label><label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="dir-${sId}-b2b3d5" value="Nose Out" class="text-amber-400"> <span>Nose Out</span></label></div></div>` : '';
+                let constraintInfo = (stCfg && stCfg.constraint) ? `<div class="bg-slate-900 p-3 rounded-xl border border-slate-700 text-xs text-amber-300 font-mono"><i class="fa-solid fa-circle-info mr-1"></i> Contrainte de ce poste : ${stCfg.constraint}</div>` : '';
+
+                c.innerHTML = `
+                    <div class="bg-emerald-950/50 border border-emerald-500/40 rounded-xl p-4 flex justify-between items-center"><div class="font-bold text-emerald-300 text-xs tracking-widest uppercase">Poste Libre</div><div class="text-[10px] text-slate-300 font-mono">Max: ${standLimits.spanMax}m x ${standLimits.lengthMax}m / LHT: ${standLimits.lhtMax !== undefined ? standLimits.lhtMax : standLimits.lengthMax}m</div></div>
+                    ${constraintInfo}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div class="relative overflow-visible"><label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">Type OACI</label><input type="text" id="direct-input-${sId}" oninput="handleSearch('${sId}', this.value)" placeholder="A320" autocomplete="off" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 font-mono text-xs uppercase text-white focus:border-amber-400"><div id="auto-direct-${sId}" class="hidden absolute left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-xl shadow-2xl z-[100] max-h-[30vh] overflow-y-auto custom-scrollbar"></div></div><div class="relative overflow-visible"><label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">Immatriculation</label><input type="text" id="direct-reg-${sId}" value="${activePreviewReg || ''}" oninput="handleSearchReg('${sId}', this.value)" placeholder="F-GABC" autocomplete="off" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 font-mono text-xs uppercase text-white"><div id="auto-reg-direct-${sId}" class="hidden absolute left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-xl shadow-2xl z-[100] max-h-[30vh] overflow-y-auto custom-scrollbar"></div></div></div>
+                    <div class="grid grid-cols-2 gap-4"><div><label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">Arrivée UTC (loc:<span class="tz-label">${AppConfig.timezone}</span>)</label><div class="flex gap-2"><input type="datetime-local" id="direct-arr-${sId}" value="${nowUtcStr}" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 font-mono text-xs text-white"><button type="button" onclick="setNowUtc('direct-arr-${sId}')" title="Heure actuelle UTC" class="bg-slate-700 hover:bg-amber-400 hover:text-slate-900 text-slate-300 px-3 py-2.5 rounded-xl transition"><i class="fa-solid fa-clock"></i></button></div></div><div><label class="block text-[10px] font-bold text-slate-300 uppercase mb-1">Départ UTC (loc:<span class="tz-label">${AppConfig.timezone}</span>)</label><div class="flex gap-2"><input type="datetime-local" id="direct-dep-${sId}" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 font-mono text-xs text-white"><button type="button" onclick="setNowUtc('direct-dep-${sId}')" title="Heure actuelle UTC" class="bg-slate-700 hover:bg-amber-400 hover:text-slate-900 text-slate-300 px-3 py-2.5 rounded-xl transition"><i class="fa-solid fa-clock"></i></button></div></div></div>
+                    <div id="dir-preview-${sId}" class="hidden bg-slate-900 p-4 rounded-xl border border-slate-700 font-mono text-xs"></div>
+                    ${b2b3d5Html}
+                    <div id="dir-${sId}-auto-container" class="hidden bg-slate-900 border border-slate-700 p-4 rounded-xl space-y-2"><label id="dir-${sId}-auto-label" class="text-[10px] font-bold uppercase"></label><div class="flex items-center gap-4 text-xs font-mono"><label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="dir-${sId}-auto" value="true" checked class="text-amber-400"> <span>Sortie Autonome</span></label><label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="dir-${sId}-auto" value="false" class="text-amber-400"> <span>Tracteur</span></label></div></div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-300 uppercase mb-1 block"><i class="fa-solid fa-comment-dots text-amber-300 mr-1"></i> Commentaire / Notification</label><textarea id="direct-comment-${sId}" placeholder="Ajouter une note..." rows="2" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs focus:border-amber-400 resize-none"></textarea></div>`;
+                a.innerHTML = `<button onclick="submitDirect('${sId}')" class="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 px-6 py-3 rounded-xl font-bold text-xs shadow-lg transition"><i class="fa-solid fa-plane-arrival mr-2"></i> GARER ICI</button>`;
+            }
+            openModal('modal-stand');
+            setTimeout(() => { if (!ac && !isCond) { if (activePreviewType) selectSearch(sId, activePreviewType); else $(`direct-input-${sId}`).focus(); } }, 100);
+        }
+
+        function processDirectFormContext(sId, code) {
+            const item = AppConfig.aircrafts[code], prev = $(`dir-preview-${sId}`);
+            if(item) {
+                const compat = isCompatible(item, sId), isH = item.cat === 'helico';
+                prev.innerHTML = `<div class="flex gap-2 items-center mb-1"><strong class="text-amber-300">${code}</strong> ${getBadge(item.cat)} ${getWarningIfIncompatible(item, sId)}</div><div class="text-slate-300 flex justify-between items-center"><span>${isH?'Rotor':'Env'}: ${item.span}m</span> <span>${isH?'LHT':'Long'}: ${item.length}m</span> <span>MTOW: ${item.mtow}T</span></div>${isH?`<div class="mt-1 pt-1 border-t border-slate-700 text-[11px]">Type d'atterrissage (T/A) : <strong class="text-emerald-300 uppercase">${item.gear || 'patins'}</strong></div>`:''}`;
+                prev.classList.remove('hidden'); if (!compat) showToast("Aéronef incompatible", "error"); evalStandOptions(sId, item, 'direct');
+            } else { prev.classList.add('hidden'); evalStandOptions(sId, null, 'direct'); }
+        }
+
+        function updateAc(sId) {
+            if(!parkedAircraft[sId]) return;
+            const newReg = $('edit-reg').value.trim().toUpperCase() || 'NO-REG';
+            if (newReg !== 'NO-REG' && newReg !== parkedAircraft[sId].reg) {
+                if (isRegAlreadyParked(newReg)) return showToast(`Immatriculation ${newReg} déjà utilisée`, "error");
+                if (regDatabase[newReg] && regDatabase[newReg] !== parkedAircraft[sId].type) showToast(`Type d'avion conservé : ${regDatabase[newReg]}`, "info");
+            }
+            parkedAircraft[sId].reg = newReg;
+            parkedAircraft[sId].arr = $('edit-arr').value || 'N/A';
+            parkedAircraft[sId].dep = $('edit-dep').value || 'N/A';
+            parkedAircraft[sId].comment = $('edit-comment').value;
+            const rAuto = document.querySelector('input[name="edit-auto"]:checked'); if (rAuto && !rAuto.disabled) parkedAircraft[sId].autonomous = rAuto.value === 'true';
+            const rB2B3D5 = document.querySelector('input[name="edit-b2b3d5"]:checked'); if (rB2B3D5) parkedAircraft[sId].d5Orientation = rB2B3D5.value;
+            registerImmat(newReg, parkedAircraft[sId].type); saveParked(); updateApronDisplay();
+        }
+
+        function changeAircraftStand(oldSId, newSId) {
+            if (oldSId === newSId) return;
+            if (parkedAircraft[newSId] || isStandCondemned(newSId)) return showToast("Poste non disponible", "error");
+            const ac = parkedAircraft[oldSId]; if (!ac) return;
+            const info = ac.specs || AppConfig.aircrafts[ac.type]; if (!isCompatible(info, newSId)) return showToast("Aéronef incompatible", "error");
+            if (['A3', 'A5', 'A7', 'A9'].includes(newSId) && !isStandEligibleForAuto(newSId, info)) ac.autonomous = false; else if (['A10', 'A11', 'A12', 'B1'].includes(newSId)) ac.autonomous = true;
+            if (!['D5', 'B2', 'B3'].includes(newSId)) ac.d5Orientation = null; else if (!ac.d5Orientation) ac.d5Orientation = 'Nose In';
+            parkedAircraft[newSId] = ac; delete parkedAircraft[oldSId]; saveParked(); closeModal('modal-stand'); updateApronDisplay(); showToast(`Aéronef déplacé en ${newSId}`);
+        }
+
+        function submitDirect(sId) {
+            let type = $(`direct-input-${sId}`).value.trim().toUpperCase(), reg = $(`direct-reg-${sId}`).value.trim().toUpperCase() || 'NO-REG';
+            if (reg !== 'NO-REG' && regDatabase[reg]) {
+                const expectedType = regDatabase[reg];
+                if (type && type !== expectedType) { showToast(`Type forcé : ${expectedType}`, "error"); type = expectedType; $(`direct-input-${sId}`).value = expectedType; } else type = expectedType;
+            }
+            if (!type) return showToast("Code OACI requis", "error");
+            const info = AppConfig.aircrafts[type] || { cat: 'avion', span: 99, length: 99, mtow: 0 };
+            if (isStandCondemned(sId)) return showToast("Poste condamné", "error");
+            if (!isCompatible(info, sId)) return showToast("Aéronef incompatible", "error");
+            if (reg !== 'NO-REG' && isRegAlreadyParked(reg)) return showToast(`Immatriculation ${reg} déjà garée`, "error");
+
+            let arr = $(`direct-arr-${sId}`).value || 'N/A', dep = $(`direct-dep-${sId}`).value || 'N/A', comment = $(`direct-comment-${sId}`).value || '';
+
+            let isAuto = ['A10', 'A11', 'A12', 'B1'].includes(sId);
+            if (['A3', 'A5', 'A7', 'A9'].includes(sId) && isStandEligibleForAuto(sId, info)) isAuto = document.querySelector(`input[name="dir-${sId}-auto"]:checked`)?.value === 'true';
+            let orientationO = ['D5', 'B2', 'B3'].includes(sId) ? (document.querySelector(`input[name="dir-${sId}-b2b3d5"]:checked`)?.value || 'Nose In') : null;
+            
+            registerImmat(reg, type); parkedAircraft[sId] = { type, reg, category: info.cat, specs: info, arr, dep, autonomous: isAuto, d5Orientation: orientationO, comment };
+            saveParked(); closeModal('modal-stand'); updateApronDisplay(); showToast(`Garé en ${sId}`);
+        }
+
+        function openDepartModal(sId) {
+            const ac = parkedAircraft[sId]; if (!ac) return;
+            $('depart-stand-target').value = sId;
+            $('depart-time-input').value = (ac.dep && ac.dep !== 'N/A') ? ac.dep : getUtcDateString();
+            openModal('modal-depart');
+        }
+
+        function confirmDepartAc() {
+            const sId = $('depart-stand-target').value, ac = parkedAircraft[sId]; if (!ac) return;
+            aircraftHistory.push({ ...ac, stand: sId, actualDeparture: $('depart-time-input').value || getUtcDateString() });
+            saveHistory(); delete parkedAircraft[sId]; clearHighlights(); saveParked(); closeModal('modal-depart'); closeModal('modal-stand'); updateApronDisplay(); showToast(`Poste ${sId} libéré et archivé`);
+        }
+
+        function resetApron() { if(confirm("Vider le tarmac ?")) { parkedAircraft={}; clearHighlights(); saveParked(); updateApronDisplay(); showToast("Tarmac réinitialisé"); } }
+
+        function renderPushResult(code) {
+            const item = AppConfig.aircrafts[code], c = $('push-result-container');
+            if(!item) { c.innerHTML = ``; return; }
+            let h = `<div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-3 font-mono shadow-md"><div class="flex justify-between items-center border-b border-slate-700 pb-2"><strong class="text-amber-300 text-sm">COMPATIBILITÉ TRACTEURS</strong><span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[10px] font-bold border border-blue-500/40">MTOW: ${item.mtow}T</span></div><div class="space-y-2">`;
+            const tList = [
+                {n: "LEKTRO", m: AppConfig.pushTractors["LEKTRO"].maxMtow, ok: item.cat!=='helico' && item.mtow<=AppConfig.pushTractors["LEKTRO"].maxMtow && item.lektro!=='NIL', msg: item.lektro==='NIL'?"Lektro NIL":item.lektro},
+                {n: "MOTOTOK", m: AppConfig.pushTractors["MOTOTOK"].maxMtow, ok: item.cat!=='helico' && item.mtow<=AppConfig.pushTractors["MOTOTOK"].maxMtow, msg: item.mototok || "Non renseigné"},
+                {n: "TPX 100", m: AppConfig.pushTractors["TPX 100"].maxMtow, ok: item.cat!=='helico' && item.mtow<=AppConfig.pushTractors["TPX 100"].maxMtow, msg: "Berceau sans barre"},
+                {n: "TPX 200", m: AppConfig.pushTractors["TPX 200"].maxMtow, ok: item.cat!=='helico' && item.mtow<=AppConfig.pushTractors["TPX 200"].maxMtow, msg: item.mtow>90?"Avec barre":"Sans barre"}
+            ];
+            tList.forEach(t => {
+                if(item.incompatiblePush && item.incompatiblePush.includes(t.n)) { t.ok = false; t.msg = "Incompatible (Forcé manuellement)"; }
+                const bStyle = t.ok ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40" : "bg-rose-500/20 text-rose-300 border-rose-500/40";
+                h += `<div class="bg-slate-800 p-2.5 rounded-lg border border-slate-700 flex justify-between items-center text-xs"><div class="flex-1"><strong class="text-white">${t.n}</strong> <span class="text-[9px] text-slate-400 ml-1">(Max: ${t.m}T)</span><div class="text-[10px] text-slate-300 mt-0.5">${t.msg}</div></div><span class="px-2 py-0.5 rounded text-[9px] font-bold border ${bStyle}">${t.ok?'COMPATIBLE':'INCOMPATIBLE'}</span></div>`;
+            });
+            c.innerHTML = h + `</div></div>`;
+        }
+
+        function switchFleetCat(cat) {
+            currentFleetCat = cat;
+            $('btn-fleet-avion').className = cat === 'avion' ? "px-4 py-1.5 rounded bg-slate-700 text-amber-300" : "px-4 py-1.5 rounded text-slate-300";
+            $('btn-fleet-helico').className = cat === 'helico' ? "px-4 py-1.5 rounded bg-slate-700 text-amber-300" : "px-4 py-1.5 rounded text-slate-300";
+            buildSettingsTables();
+        }
+
+        function toggleCondemnStand(sId, targetId) {
+            if (!AppConfig.stands[sId].condemns) AppConfig.stands[sId].condemns = [];
+            let idx = AppConfig.stands[sId].condemns.indexOf(targetId);
+            if (idx > -1) AppConfig.stands[sId].condemns.splice(idx, 1); else AppConfig.stands[sId].condemns.push(targetId);
+            saveConfig();
+        }
+
+        function updateImmatEntry(oldReg, newRegVal, typeVal) {
+            const cleanNewReg = newRegVal.trim().toUpperCase(), cleanType = typeVal.trim().toUpperCase();
+            if (!cleanNewReg) delete regDatabase[oldReg];
+            else if (cleanNewReg !== oldReg) {
+                if (regDatabase[cleanNewReg]) { showToast(`Immatriculation ${cleanNewReg} existe déjà`, "error"); buildSettingsTables(); return; }
+                delete regDatabase[oldReg]; regDatabase[cleanNewReg] = cleanType; 
+            } else regDatabase[oldReg] = cleanType;
+            saveRegDatabase();
+        }
+
+        function deleteImmatEntry(regKey) { delete regDatabase[regKey]; saveRegDatabase(); buildSettingsTables(); showToast(`Immatriculation ${regKey} supprimée`); }
+
+        function openAddImmatModal() {
+            $('new-immat-reg').value = ''; $('new-immat-type').value = '';
+            const autoList = $('auto-direct-immat-add'); if (autoList) autoList.classList.add('hidden');
+            openModal('modal-add-immat'); setTimeout(() => $('new-immat-reg').focus(), 100);
+        }
+
+        function submitNewImmatModal() {
+            const reg = $('new-immat-reg').value.trim().toUpperCase(), type = $('new-immat-type').value.trim().toUpperCase();
+            if (!reg || !type) return showToast("Immatriculation et type requis", "error");
+            if (regDatabase[reg]) return showToast(`Immatriculation ${reg} existe déjà`, "error");
+            if (!AppConfig.aircrafts[type]) showToast(`Avertissement : OACI ${type} inconnu`, "error");
+            registerImmat(reg, type); closeModal('modal-add-immat'); buildSettingsTables(); showToast(`${reg} ajouté`);
+        }
+
+        function clearImmatDatabase() { if (confirm("Effacer toute la base d'immatriculations ?")) { regDatabase = {}; saveRegDatabase(); buildSettingsTables(); showToast("Base vidée"); } }
+
+        function buildSettingsTables() {
+            const pGrid = $('settings-parkings-grid'), qP = ($('search-parking-input')?.value || "").trim().toUpperCase(); pGrid.innerHTML = '';
+            for (const [sId, s] of Object.entries(AppConfig.stands)) {
+                if(qP && !sId.includes(qP)) continue;
+                let b = ['A10','A11','A12','B1'].includes(sId) ? `<span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[9px] font-bold border border-amber-400/40">Autonome Permanent</span>` : ['A3','A5','A7','A9'].includes(sId) ? `<span class="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 text-[9px] font-bold border border-blue-500/40">Autonome (Cat A/B)</span>` : '';
+                pGrid.innerHTML += `<div class="bg-slate-900 border border-slate-700 p-4 rounded-xl font-mono text-xs"><div class="flex justify-between items-center mb-3"><strong class="text-amber-300 text-sm">${sId}</strong>${b}</div><div class="grid grid-cols-3 gap-2"><div class="bg-slate-800 p-2 rounded"><label class="text-[9px] text-slate-400 uppercase block mb-1">Env. Max</label><input type="number" step="0.1" value="${s.spanMax}" onchange="AppConfig.stands['${sId}'].spanMax=parseFloat(this.value)||0; saveConfig();" class="w-full bg-transparent text-white font-bold outline-none"></div><div class="bg-slate-800 p-2 rounded"><label class="text-[9px] text-slate-400 uppercase block mb-1">Long. Max</label><input type="number" step="0.1" value="${s.lengthMax}" onchange="AppConfig.stands['${sId}'].lengthMax=parseFloat(this.value)||0; saveConfig();" class="w-full bg-transparent text-white font-bold outline-none"></div><div class="bg-slate-800 p-2 rounded"><label class="text-[9px] text-slate-400 uppercase block mb-1">LHT Max</label><input type="number" step="0.1" value="${s.lhtMax !== undefined ? s.lhtMax : s.lengthMax}" onchange="AppConfig.stands['${sId}'].lhtMax=parseFloat(this.value)||0; saveConfig();" class="w-full bg-transparent text-white font-bold outline-none"></div></div></div>`;
+            }
+
+            const cGrid = $('settings-constraints-grid'), qC = ($('search-constraint-input')?.value || "").trim().toUpperCase(); cGrid.innerHTML = '';
+            for (const [sId, s] of Object.entries(AppConfig.stands)) {
+                if(qC && !sId.includes(qC)) continue;
+                let checkboxesHtml = `<div class="grid grid-cols-3 gap-2 max-h-36 overflow-y-auto bg-slate-800 p-3 rounded-lg border border-slate-600 custom-scrollbar">`;
+                for (const otherId of Object.keys(AppConfig.stands)) {
+                    if (otherId !== sId) {
+                        let isChecked = Array.isArray(s.condemns) && s.condemns.includes(otherId);
+                        checkboxesHtml += `<label class="flex items-center gap-2 cursor-pointer text-slate-200 hover:text-amber-300"><input type="checkbox" ${isChecked ? 'checked' : ''} onchange="toggleCondemnStand('${sId}', '${otherId}')" class="rounded bg-slate-900 border-slate-600 text-amber-400 focus:ring-0"><span>Poste ${otherId}</span></label>`;
+                    }
+                }
+                checkboxesHtml += `</div>`;
+                cGrid.innerHTML += `<div class="bg-slate-900 border border-slate-700 p-4 rounded-xl font-mono text-xs space-y-3 overflow-visible"><div class="flex justify-between items-center"><strong class="text-amber-300 text-sm">Poste ${sId}</strong><span class="text-[10px] text-slate-300">Règle de contrainte</span></div><div><label class="text-[9px] text-slate-400 uppercase block mb-1">Description (visible partout)</label><input type="text" value="${s.constraint || ''}" onchange="AppConfig.stands['${sId}'].constraint=this.value; saveConfig();" placeholder="ex: Si occupé, condamne A9 et A10" class="w-full bg-slate-800 border border-slate-600 rounded-lg p-2 text-white text-xs"></div><div><label class="text-[9px] text-slate-400 uppercase block mb-1">Postes condamnés si ${sId} est occupé :</label>${checkboxesHtml}</div></div>`;
+            }
+
+            const pushGrid = $('settings-push-grid'); pushGrid.innerHTML = '';
+            for (const [n, d] of Object.entries(AppConfig.pushTractors)) { pushGrid.innerHTML += `<div class="bg-slate-900 border border-slate-700 p-4 rounded-xl font-mono text-xs flex justify-between items-center"><strong class="text-amber-300 text-sm">${n}</strong><div class="flex items-center gap-2 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-600"><label class="text-[9px] text-slate-400 uppercase">Max (T)</label><input type="number" step="1" value="${d.maxMtow}" onchange="AppConfig.pushTractors['${n}'].maxMtow=parseFloat(this.value)||0; saveConfig();" class="w-16 bg-transparent text-white font-bold outline-none text-right"></div></div>`; }
+
+            const isH = currentFleetCat === 'helico';
+            $('th-span').textContent = isH ? 'Rotor (m)' : 'Env (m)'; $('th-len').textContent = isH ? 'LHT (m)' : 'Long (m)';
+            $('th-gear').style.display = isH ? 'table-cell' : 'none'; $('th-lek').style.display = isH ? 'none' : 'table-cell';
+            
+            const qF = ($('search-fleet-input')?.value || "").trim().toUpperCase(), tb = $('settings-table-aircrafts'); tb.innerHTML = '';
+            
+            const sortedCodes = Object.keys(AppConfig.aircrafts).sort((a,b) => a.localeCompare(b));
+            for (const code of sortedCodes) {
+                const item = AppConfig.aircrafts[code];
+                if (item.cat !== currentFleetCat || (qF && !code.includes(qF))) continue;
+                tb.innerHTML += `<tr class="hover:bg-slate-700/50 cursor-pointer transition" onclick="openAircraftModal('${code}')"><td class="p-3 text-amber-300 font-bold">${code}</td><td class="p-3 uppercase text-slate-300">${item.cat}</td><td class="p-3">${item.span}m</td><td class="p-3 font-bold text-slate-200">${getCatOaci(item.span)}</td><td class="p-3">${item.length}m</td>${isH?`<td class="p-3 uppercase text-slate-300">${item.gear||'patins'}</td>`:''}<td class="p-3">${item.mtow}T</td>${!isH?`<td class="p-3 uppercase ${item.lektro==='NIL'?'text-rose-300':'text-emerald-300'}">${item.lektro||'NIL'}</td>`:''}<td class="p-3" onclick="event.stopPropagation()"><button onclick="deleteAc('${code}')" class="text-rose-400 hover:text-rose-300 p-1 transition"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+            }
+
+            const qI = ($('search-immat-input')?.value || "").trim().toUpperCase(), tbImmat = $('settings-table-immat');
+            if (tbImmat) {
+                tbImmat.innerHTML = ''; const sortedRegs = Object.keys(regDatabase).sort((a,b) => a.localeCompare(b));
+                if (sortedRegs.length === 0) tbImmat.innerHTML = `<tr><td colspan="3" class="p-4 text-center text-slate-400">Aucune immatriculation enregistrée.</td></tr>`;
+                else {
+                    sortedRegs.forEach(regKey => {
+                        const typeVal = regDatabase[regKey] || ''; if (qI && !regKey.includes(qI) && !typeVal.toUpperCase().includes(qI)) return;
+                        tbImmat.innerHTML += `<tr class="hover:bg-slate-700/50 transition"><td class="p-3"><input type="text" value="${regKey}" onchange="updateImmatEntry('${regKey}', this.value, $('type-immat-${regKey}').value)" class="bg-slate-900 border border-slate-600 rounded px-2 py-1 font-bold text-amber-300 uppercase w-36"></td><td class="p-3 relative overflow-visible"><input type="text" id="type-immat-${regKey}" value="${typeVal}" oninput="handleSearch('immat-type-edit-${regKey}', this.value)" onchange="updateImmatEntry('${regKey}', '${regKey}', this.value)" class="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-white uppercase w-32"><div id="auto-immat-edit-${regKey}" class="hidden absolute left-3 top-full mt-1 bg-slate-700 border border-slate-600 rounded-xl shadow-2xl z-[100] max-h-40 overflow-y-auto w-40 custom-scrollbar"></div></td><td class="p-3"><button onclick="deleteImmatEntry('${regKey}')" class="text-rose-400 hover:text-rose-300 p-1 transition"><i class="fa-solid fa-trash"></i></button></td></tr>`;
+                    });
+                }
+            }
+        }
+
+        function openAircraftModal(code = null) {
+            const isH = currentFleetCat === 'helico';
+            $('ac-edit-title').innerHTML = code ? `<i class="fa-solid fa-pen text-amber-400"></i> Modifier ${code}` : `<i class="fa-solid fa-plus text-amber-400"></i> Nouvel Aéronef`;
+            $('edit-orig').value = code || ''; $('edit-code').value = code || '';
+            $('edit-cat').value = code ? AppConfig.aircrafts[code].cat : currentFleetCat;
+            $('edit-span').value = code ? AppConfig.aircrafts[code].span : ''; $('edit-len').value = code ? AppConfig.aircrafts[code].length : '';
+            $('edit-mtow').value = code ? AppConfig.aircrafts[code].mtow : ''; $('edit-lek').value = code ? (AppConfig.aircrafts[code].lektro||'NIL') : 'NIL';
+            $('edit-gear').value = code ? (AppConfig.aircrafts[code].gear||'patins') : 'patins';
+            $('edit-mototok').value = code ? (AppConfig.aircrafts[code].mototok || 'Non renseigné') : 'Non renseigné';
+            $('edit-gpu').value = code ? (AppConfig.aircrafts[code].gpu || 'Non renseigné') : 'Non renseigné';
+            $('edit-hydro').value = code ? (AppConfig.aircrafts[code].hydro || '') : '';
+            $('edit-parts').value = code ? (AppConfig.aircrafts[code].parts || '') : '';
+            
+            const inc = code && AppConfig.aircrafts[code].incompatiblePush ? AppConfig.aircrafts[code].incompatiblePush : [];
+            $$('.push-inc-cb').forEach(cb => cb.checked = inc.includes(cb.value));
+
+            toggleFormCat(); openModal('modal-ac-edit');
+        }
+
+        function toggleFormCat() {
+            const c = $('edit-cat').value;
+            $('grp-lek').classList.toggle('hidden', c==='helico'); $('grp-gear').classList.toggle('hidden', c!=='helico');
+            $('lbl-edit-span').textContent = c==='helico' ? 'Rotor (m)' : 'Envergure (m)'; $('lbl-edit-len').textContent = c==='helico' ? 'LHT (m)' : 'Longueur (m)';
+        }
+
+        function saveAcEdit() {
+            const o = $('edit-orig').value, c = $('edit-code').value.trim().toUpperCase(); if(!c) return showToast("Code requis", "error");
+            const cat = $('edit-cat').value;
+            const data = { 
+                cat, span: parseFloat($('edit-span').value)||0, length: parseFloat($('edit-len').value)||0, mtow: parseFloat($('edit-mtow').value)||0, 
+                mototok: $('edit-mototok').value, gpu: $('edit-gpu').value, hydro: $('edit-hydro').value.trim(), parts: $('edit-parts').value.trim(),
+                incompatiblePush: Array.from($$('.push-inc-cb')).filter(cb => cb.checked).map(cb => cb.value)
+            };
+            if(cat==='helico') data.gear = $('edit-gear').value; else data.lektro = $('edit-lek').value.trim() || "NIL";
+            if(o && o!==c) delete AppConfig.aircrafts[o]; AppConfig.aircrafts[c] = data; saveConfig(); closeModal('modal-ac-edit'); buildSettingsTables(); showToast(`Sauvegardé : ${c}`);
+        }
+
+        function deleteAc(code) { if(confirm(`Supprimer ${code}?`)){ delete AppConfig.aircrafts[code]; saveConfig(); buildSettingsTables(); showToast(`Supprimé`); } }
+
+        window.onclick = (e) => {
+            if(!e.target.closest('.relative')) {
+                ['autocomplete-sidebar', 'autocomplete-add', 'dropdown-add', 'autocomplete-reg-add', 'auto-direct-immat-add'].forEach(id => { const el = $(id); if(el) el.classList.add('hidden'); });
+                $$('[id^="auto-direct-"], [id^="auto-reg-direct-"], [id^="auto-immat-edit-"]').forEach(el => el.classList.add('hidden'));
+            }
+        };
+
+        function showToast(msg, type = 'success') {
+            const c = $('toast-container'), t = document.createElement('div');
+            t.className = `px-4 py-2.5 rounded-xl border text-xs font-bold font-mono shadow-2xl flex items-center gap-2 transition-all fade-in ${type==='success'?'bg-emerald-900 text-emerald-200 border-emerald-700':type==='info'?'bg-blue-900 text-blue-200 border-blue-700':'bg-rose-900 text-rose-200 border-rose-700'}`;
+            t.innerHTML = `<i class="fa-solid fa-${type==='success'?'check':type==='info'?'circle-info':'circle-exclamation'}"></i> ${msg}`;
+            c.appendChild(t); setTimeout(() => { t.style.opacity = '0'; setTimeout(()=>t.remove(), 200); }, 3000);
+        }
+
+        // --- CONFIGURATION GITHUB CLOUD ---
+        const GITHUB_USER = "maxencemolin26953-gif";
+        const GITHUB_REPO = "Aeropark-GNB";
+        const GITHUB_FILE_PATH = "Aeropark_data.json";
+        const GITHUB_TOKEN = "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";
+
+        // On utilise uniquement l'API pour contourner le cache de 5 minutes
+        const githubApiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
+
+        async function loadAeroparkDataFromGitHub(isSilent = false) {
+            try {
+                const response = await fetch(githubApiUrl, {
+                    headers: { "Authorization": `token ${GITHUB_TOKEN}` },
+                    cache: "no-store" // Force à ignorer le cache
+                });
+                if (!response.ok) throw new Error("Erreur de chargement réseau");
+                
+                const fileMeta = await response.json();
+                
+                // Décodage du format renvoyé par l'API (avec nettoyage des sauts de ligne)
+                const remoteData = JSON.parse(decodeURIComponent(escape(atob(fileMeta.content.replace(/\s/g, "")))));
+                
+               // Correction du mapping avec les vraies clés du fichier JSON distant
+                if (remoteData.AppConfig) AppConfig = remoteData.AppConfig;
+                if (remoteData.regDatabase) regDatabase = remoteData.regDatabase;
+                if (remoteData.parkedAircraft) parkedAircraft = remoteData.parkedAircraft;
+                if (remoteData.aircraftHistory) aircraftHistory = remoteData.aircraftHistory;
+                
+                updateCondemnedMap();
+                
+                // Si ce n'est pas une synchro de fond, on charge toute l'interface
+                if (!isSilent) {
+                    updateTZUI();
+                    initApron();
+                    switchTab('sidebar', 'aircraft');
+                    setDefaultDates();
+                }
+                
+                // Actualise visuellement le Tarmac et le panneau de gauche
+                updateApronDisplay(); 
+                
+            } catch (error) {
+                console.warn("Synchro ignorée ou mode hors-ligne", error);
+            }
+        }
+
+        // Fonction de sauvegarde automatique vers GitHub (écriture en direct)
+        async function saveToGitHub() {
+            const dataToSend = {
+                aeropark_config: AppConfig,
+                aeropark_regs: regDatabase,
+                aeropark_parked: parkedAircraft,
+                aeropark_history: aircraftHistory
+            };
+
+            try {
+                const getRes = await fetch(githubApiUrl, {
+                    headers: { "Authorization": `token ${GITHUB_TOKEN}` },
+                    cache: "no-store"
+                });
+                if (!getRes.ok) throw new Error("Impossible de récupérer le fichier GitHub");
+                const fileMeta = await getRes.json();
+                
+                const contentEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(dataToSend, null, 2))));
+                
+                await fetch(githubApiUrl, {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": `token ${GITHUB_TOKEN}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        message: "Mise à jour automatique AéroPark",
+                        content: contentEncoded,
+                        sha: fileMeta.sha
+                    })
+                });
+            } catch (error) {
+                console.error("Erreur lors de la synchronisation cloud GitHub :", error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Premier chargement complet au démarrage
+            loadAeroparkDataFromGitHub();
+            
+            // SYNCHRONISATION EN DIRECT
+            // Interroge le cloud toutes les 10 secondes (10000 millisecondes)
+            setInterval(() => {
+                // Ne rafraîchit pas si une fenêtre est ouverte pour ne pas interrompre une saisie
+                const isModalOpen = !document.getElementById('modal-overlay').classList.contains('hidden');
+                if (!isModalOpen) {
+                    loadAeroparkDataFromGitHub(true);
+                }
+            }, 10000);
+        });
+    </script>
+</body>
+</html>
