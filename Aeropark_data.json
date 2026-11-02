@@ -5242,8 +5242,10 @@
       "autonomous": true,
       "d5Orientation": null,
       "comment": ""
-    },
-    "A6": {
+    }
+  },
+  "aeropark_history": [
+    {
       "type": "A10",
       "reg": "NO-REG",
       "category": "avion",
@@ -5266,8 +5268,9 @@
       "dep": "N/A",
       "autonomous": false,
       "d5Orientation": null,
-      "comment": ""
+      "comment": "",
+      "stand": "A6",
+      "actualDeparture": "2026-11-02T13:32"
     }
-  },
-  "aeropark_history": []
+  ]
 }
