@@ -354,7 +354,7 @@
                 if (now - depTime > fifteenDaysMs) { cleaned = true; return false; }
                 return true;
             });
-            if (cleaned) localStorage.setItem('aeropark_history', JSON.stringify(aircraftHistory));
+            if (cleaned) localStorage.setItem('aircraftHistory', JSON.stringify(aircraftHistory));
         };
         cleanOldArchives();
 
