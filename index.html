@@ -340,6 +340,10 @@
         const $$ = sel => document.querySelectorAll(sel);
 
         const CONFIG_PIN = "1664";
+        const GITHUB_REPO_OWNER = "maxencemolin2953-gif";
+        const GITHUB_REPO_NAME = "Aeropark-GNB";
+        const GITHUB_FILE_PATH = "Aeropark_data.json";
+
         const defaultConfig = {
             timezone: 'UTC+1',
             stands: {
@@ -375,34 +379,21 @@
                 "MOTOTOK": { maxMtow: 40 },
                 "TPX 100": { maxMtow: 100 },
                 "TPX 200": { maxMtow: 200 }
-            }
+            },
+            regs: {},
+            parked: {},
+            history: [],
+            planned: {}
         };
 
-        let AppConfig = JSON.parse(localStorage.getItem('aeropark_config')) || defaultConfig;
-        let regDatabase = JSON.parse(localStorage.getItem('aeropark_regs')) || {};
-        let parkedAircraft = JSON.parse(localStorage.getItem('aeropark_parked')) || {};
-        let aircraftHistory = JSON.parse(localStorage.getItem('aeropark_history')) || [];
-        let plannedAircraft = JSON.parse(localStorage.getItem('aeropark_planned')) || {};
+        let AppConfig = JSON.parse(JSON.stringify(defaultConfig));
+        let regDatabase = {};
+        let parkedAircraft = {};
+        let aircraftHistory = [];
+        let plannedAircraft = {};
         
         let currentView = 'tarmac';
         let planConfig = { scale: 'day', start: new Date().setHours(0,0,0,0) };
-
-        if (!AppConfig.timezone) AppConfig.timezone = 'UTC+1';
-
-        const cleanOldArchives = () => {
-            const now = new Date().getTime();
-            const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000;
-            let cleaned = false;
-            aircraftHistory = aircraftHistory.filter(item => {
-                if (!item.actualDeparture || item.actualDeparture === 'N/A') return true;
-                const depTime = new Date(item.actualDeparture.replace(' ', 'T') + 'Z').getTime();
-                if (isNaN(depTime)) return true;
-                if (now - depTime > fifteenDaysMs) { cleaned = true; return false; }
-                return true;
-            });
-            if (cleaned) localStorage.setItem('aeropark_history', JSON.stringify(aircraftHistory));
-        };
-        cleanOldArchives();
 
         let activePreviewType = null;
         let activePreviewReg = null;
@@ -412,51 +403,189 @@
         
         let eeClicks = 0, eeTimer;
 
-        for (let code in AppConfig.aircrafts) {
-            let ac = AppConfig.aircrafts[code];
-            if (ac.mototok === '1 palette') ac.mototok = 'Palettes simples';
-            if (ac.mototok === '2 palette') ac.mototok = 'Palettes doubles';
-            ac.mototok = ac.mototok || "Non renseigné"; ac.gpu = ac.gpu || "Non renseigné";
-            if (ac.cat === 'avion') ac.lektro = ac.lektro || "NIL";
-            ac.hydro = ac.hydro || "N/A"; ac.parts = ac.parts || "";
-            if (!ac.incompatiblePush) ac.incompatiblePush = [];
-        }
-        if (!AppConfig.pushTractors) AppConfig.pushTractors = JSON.parse(JSON.stringify(defaultConfig.pushTractors));
-        for (let sId in AppConfig.stands) {
-            if (AppConfig.stands[sId].constraint === undefined) AppConfig.stands[sId].constraint = "";
-            if (AppConfig.stands[sId].lhtMax === undefined) AppConfig.stands[sId].lhtMax = AppConfig.stands[sId].lengthMax;
-            if (AppConfig.stands[sId].condemns === undefined) AppConfig.stands[sId].condemns = [];
-            else if (!Array.isArray(AppConfig.stands[sId].condemns)) AppConfig.stands[sId].condemns = [AppConfig.stands[sId].condemns];
+        // --- FONCTIONS DE SYNCHRONISATION GITHUB ---
+        function getGitHubToken() {
+            return localStorage.getItem('aeropark_gh_token') || prompt("Veuillez saisir votre token d'accès personnel GitHub (GH_TOKEN) pour la synchronisation en direct :");
         }
 
-        function updateCondemnedMap() {
-            currentCondemnedMap = {};
-            for (const [sId, ac] of Object.entries(parkedAircraft)) {
-                const standCfg = AppConfig.stands[sId];
-                if (standCfg && Array.isArray(standCfg.condemns)) {
-                    standCfg.condemns.forEach(target => {
-                        let t = target.trim().toUpperCase();
-                        if (t) { if (!currentCondemnedMap[t]) currentCondemnedMap[t] = []; currentCondemnedMap[t].push(sId); }
-                    });
+        async function loadDataFromGitHub() {
+            try {
+                const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`, {
+                    cache: 'no-store',
+                    headers: { 'Accept': 'application/vnd.github.v3+json' }
+                });
+                if (!response.ok) throw new Error("Erreur de chargement du fichier distant.");
+                const fileData = await response.json();
+                const jsonString = decodeURIComponent(escape(window.atob(fileData.content.replace(/\s/g, ''))));
+                const parsed = JSON.parse(jsonString);
+
+                AppConfig = parsed.aeropark_config || defaultConfig;
+                regDatabase = parsed.aeropark_regs || {};
+                parkedAircraft = parsed.aeropark_parked || {};
+                aircraftHistory = parsed.aeropark_history || [];
+                plannedAircraft = parsed.aeropark_planned || {};
+            } catch (e) {
+                console.warn("Chargement distant échoué, utilisation des données locales de repli.", e);
+                AppConfig = JSON.parse(localStorage.getItem('aeropark_config')) || defaultConfig;
+                regDatabase = JSON.parse(localStorage.getItem('aeropark_regs')) || {};
+                parkedAircraft = JSON.parse(localStorage.getItem('aeropark_parked')) || {};
+                aircraftHistory = JSON.parse(localStorage.getItem('aeropark_history')) || [];
+                plannedAircraft = JSON.parse(localStorage.getItem('aeropark_planned')) || {};
+            }
+
+            if (!AppConfig.timezone) AppConfig.timezone = 'UTC+1';
+            cleanOldArchives();
+            initializeAppData();
+        }
+
+        async function saveDataToGitHub(commitMessage = "Mise à jour tarmac en direct") {
+            let token = localStorage.getItem('aeropark_gh_token');
+            if (!token) {
+                token = prompt("Saisissez votre token GitHub (GH_TOKEN) pour enregistrer les modifications :");
+                if (token) localStorage.setItem('aeropark_gh_token', token.trim());
+                else {
+                    showToast("Token manquant, modifications enregistrées localement uniquement.", "error");
+                    saveLocalOnly();
+                    return;
                 }
+            }
+
+            const dataObject = {
+                aeropark_config: AppConfig,
+                aeropark_regs: regDatabase,
+                aeropark_parked: parkedAircraft,
+                aeropark_history: aircraftHistory,
+                aeropark_planned: plannedAircraft
+            };
+
+            const jsonStr = JSON.stringify(dataObject, null, 2);
+            const base64Content = btoa(unescape(encodeURIComponent(jsonStr)));
+            const apiUrl = `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`;
+
+            try {
+                // 1. Récupérer le SHA actuel du fichier sur GitHub
+                const getRes = await fetch(apiUrl, {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
+                });
+                if (!getRes.ok) throw new Error("Impossible de récupérer le SHA du fichier distant.");
+                const fileMeta = await getRes.json();
+                const fileSha = fileMeta.sha;
+
+                // 2. Envoyer la mise à jour (PUT)
+                const putRes = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/vnd.github.v3+json'
+                    },
+                    body: JSON.stringify({
+                        message: commitMessage,
+                        content: base64Content,
+                        sha: fileSha
+                    })
+                });
+
+                if (!putRes.ok) {
+                    const errJson = await putRes.json();
+                    if (putRes.status === 401) {
+                        localStorage.removeItem('aeropark_gh_token');
+                        throw new Error("Token GitHub invalide ou expiré.");
+                    }
+                    throw new Error(errJson.message || "Erreur lors de la sauvegarde sur GitHub.");
+                }
+
+                saveLocalOnly();
+                showToast("Synchronisé avec succès sur GitHub !");
+            } catch (err) {
+                console.error("Erreur GitHub API:", err);
+                showToast(err.message, "error");
+                saveLocalOnly(); // Sauvegarde locale de secours
             }
         }
 
-        const isStandCondemned = (sId) => currentCondemnedMap[sId] !== undefined && currentCondemnedMap[sId].length > 0;
-        const isRegAlreadyParked = (reg) => {
-            if (!reg || reg === 'NO-REG') return false;
-            const clean = reg.trim().toUpperCase();
-            return Object.values(parkedAircraft).some(ac => ac.reg && ac.reg.trim().toUpperCase() === clean);
-        };
+        function saveLocalOnly() {
+            localStorage.setItem('aeropark_config', JSON.stringify(AppConfig));
+            localStorage.setItem('aeropark_regs', JSON.stringify(regDatabase));
+            localStorage.setItem('aeropark_parked', JSON.stringify(parkedAircraft));
+            localStorage.setItem('aeropark_history', JSON.stringify(aircraftHistory));
+            localStorage.setItem('aeropark_planned', JSON.stringify(plannedAircraft));
+            updateCondemnedMap();
+        }
 
-        const saveConfig = () => { localStorage.setItem('aeropark_config', JSON.stringify(AppConfig)); updateCondemnedMap(); updateApronDisplay(); renderPlanning(); };
-        const saveParked = () => { localStorage.setItem('aeropark_parked', JSON.stringify(parkedAircraft)); updateCondemnedMap(); };
-        const savePlanned = () => { localStorage.setItem('aeropark_planned', JSON.stringify(plannedAircraft)); };
-        const saveHistory = () => localStorage.setItem('aeropark_history', JSON.stringify(aircraftHistory));
-        const saveRegDatabase = () => localStorage.setItem('aeropark_regs', JSON.stringify(regDatabase));
+        const saveConfig = () => { saveDataToGitHub("Mise à jour de la configuration"); updateCondemnedMap(); updateApronDisplay(); renderPlanning(); };
+        const saveParked = () => { saveDataToGitHub("Mise à jour de l'occupation du tarmac"); updateCondemnedMap(); };
+        const savePlanned = () => { saveDataToGitHub("Mise à jour des vols prévisionnels"); };
+        const saveHistory = () => { saveDataToGitHub("Mise à jour de l'historique archivé"); };
+        const saveRegDatabase = () => { saveDataToGitHub("Mise à jour de la base d'immatriculations"); };
 
-        document.addEventListener('DOMContentLoaded', () => {
-            updateTZUI(); updateCondemnedMap(); initApron(); switchTab('sidebar', 'aircraft'); updateApronDisplay(); setDefaultDates();
+        function initializeAppData() {
+            const cleanOldArchives = () => {
+                const now = new Date().getTime();
+                const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000;
+                let cleaned = false;
+                aircraftHistory = aircraftHistory.filter(item => {
+                    if (!item.actualDeparture || item.actualDeparture === 'N/A') return true;
+                    const depTime = new Date(item.actualDeparture.replace(' ', 'T') + 'Z').getTime();
+                    if (isNaN(depTime)) return true;
+                    if (now - depTime > fifteenDaysMs) { cleaned = true; return false; }
+                    return true;
+                });
+                if (cleaned) saveHistory();
+            };
+            cleanOldArchives();
+
+            for (let code in AppConfig.aircrafts) {
+                let ac = AppConfig.aircrafts[code];
+                if (ac.mototok === '1 palette') ac.mototok = 'Palettes simples';
+                if (ac.mototok === '2 palette') ac.mototok = 'Palettes doubles';
+                ac.mototok = ac.mototok || "Non renseigné"; ac.gpu = ac.gpu || "Non renseigné";
+                if (ac.cat === 'avion') ac.lektro = ac.lektro || "NIL";
+                ac.hydro = ac.hydro || "N/A"; ac.parts = ac.parts || "";
+                if (!ac.incompatiblePush) ac.incompatiblePush = [];
+            }
+            if (!AppConfig.pushTractors) AppConfig.pushTractors = JSON.parse(JSON.stringify(defaultConfig.pushTractors));
+            for (let sId in AppConfig.stands) {
+                if (AppConfig.stands[sId].constraint === undefined) AppConfig.stands[sId].constraint = "";
+                if (AppConfig.stands[sId].lhtMax === undefined) AppConfig.stands[sId].lhtMax = AppConfig.stands[sId].lengthMax;
+                if (AppConfig.stands[sId].condemns === undefined) AppConfig.stands[sId].condemns = [];
+                else if (!Array.isArray(AppConfig.stands[sId].condemns)) AppConfig.stands[sId].condemns = [AppConfig.stands[sId].condemns];
+            }
+
+            updateTZUI(); 
+            updateCondemnedMap(); 
+            initApron(); 
+            switchTab('sidebar', 'aircraft'); 
+            updateApronDisplay(); 
+            setDefaultDates();
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadDataFromGitHub();
+            // Polling automatique toutes les 25 secondes pour la synchronisation multi-PC en direct
+            setInterval(async () => {
+                try {
+                    const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`, {
+                        cache: 'no-store',
+                        headers: { 'Accept': 'application/vnd.github.v3+json' }
+                    });
+                    if (response.ok) {
+                        const fileData = await response.json();
+                        const jsonString = decodeURIComponent(escape(window.atob(fileData.content.replace(/\s/g, ''))));
+                        const parsed = JSON.parse(jsonString);
+                        
+                        // Mise à jour silencieuse si des changements distants sont détectés
+                        if (JSON.stringify(parkedAircraft) !== JSON.stringify(parsed.aeropark_parked) ||
+                            JSON.stringify(plannedAircraft) !== JSON.stringify(parsed.aeropark_planned)) {
+                            parkedAircraft = parsed.aeropark_parked || {};
+                            plannedAircraft = parsed.aeropark_planned || {};
+                            updateCondemnedMap();
+                            updateApronDisplay();
+                            if (currentView === 'plan') renderPlanning();
+                        }
+                    }
+                } catch(e) {}
+            }, 25000);
         });
 
         function toggleView() {
@@ -537,7 +666,6 @@
             
             $('plan-date-label').textContent = new Date(startMs).toLocaleDateString('fr-FR', {day:'2-digit', month:'short', year:'numeric'}).toUpperCase();
 
-            // Calcul de la position de la ligne de date/heure actuelle
             const nowMs = Date.now();
             const nowLeft = (nowMs - startMs) * pxPerMs;
             const showNowLine = nowMs >= startMs && nowMs <= endMs;
@@ -1762,6 +1890,25 @@
             t.innerHTML = `<i class="fa-solid fa-${type==='success'?'check':type==='info'?'circle-info':'circle-exclamation'}"></i> ${msg}`;
             c.appendChild(t); setTimeout(() => { t.style.opacity = '0'; setTimeout(()=>t.remove(), 200); }, 3000);
         }
+
+        function updateCondemnedMap() {
+            currentCondemnedMap = {};
+            for (const [sId, ac] of Object.entries(parkedAircraft)) {
+                const standCfg = AppConfig.stands[sId];
+                if (standCfg && Array.isArray(standCfg.condemns)) {
+                    standCfg.condemns.forEach(target => {
+                        let t = target.trim().toUpperCase();
+                        if (t) { if (!currentCondemnedMap[t]) currentCondemnedMap[t] = []; currentCondemnedMap[t].push(sId); }
+                    });
+                }
+            }
+        }
+        const isStandCondemned = (sId) => currentCondemnedMap[sId] !== undefined && currentCondemnedMap[sId].length > 0;
+        const isRegAlreadyParked = (reg) => {
+            if (!reg || reg === 'NO-REG') return false;
+            const clean = reg.trim().toUpperCase();
+            return Object.values(parkedAircraft).some(ac => ac.reg && ac.reg.trim().toUpperCase() === clean);
+        };
     </script>
 </body>
 </html>
