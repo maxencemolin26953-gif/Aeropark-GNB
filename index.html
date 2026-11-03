@@ -408,12 +408,34 @@
             return localStorage.getItem('aeropark_gh_token') || prompt("Veuillez saisir votre token d'accès personnel GitHub (GH_TOKEN) pour la synchronisation en direct :");
         }
 
+        const cleanOldArchives = () => {
+            const now = new Date().getTime();
+            const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000;
+            let cleaned = false;
+            aircraftHistory = aircraftHistory.filter(item => {
+                if (!item.actualDeparture || item.actualDeparture === 'N/A') return true;
+                const depTime = new Date(item.actualDeparture.replace(' ', 'T') + 'Z').getTime();
+                if (isNaN(depTime)) return true;
+                if (now - depTime > fifteenDaysMs) { cleaned = true; return false; }
+                return true;
+            });
+            if (cleaned) saveHistory();
+        };
+
         async function loadDataFromGitHub() {
             try {
                 const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`, {
                     cache: 'no-store',
                     headers: { 'Accept': 'application/vnd.github.v3+json' }
                 });
+                
+                if (response.status === 404) {
+                    console.warn("Fichier distant introuvable (404). Création initiale sur GitHub...");
+                    saveLocalOnly();
+                    await saveDataToGitHub("Initialisation automatique du fichier de données");
+                    return;
+                }
+
                 if (!response.ok) throw new Error("Erreur de chargement du fichier distant.");
                 const fileData = await response.json();
                 const jsonString = decodeURIComponent(escape(window.atob(fileData.content.replace(/\s/g, ''))));
@@ -463,15 +485,15 @@
             const apiUrl = `https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`;
 
             try {
-                // 1. Récupérer le SHA actuel du fichier sur GitHub
+                let fileSha = null;
                 const getRes = await fetch(apiUrl, {
                     headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
                 });
-                if (!getRes.ok) throw new Error("Impossible de récupérer le SHA du fichier distant.");
-                const fileMeta = await getRes.json();
-                const fileSha = fileMeta.sha;
+                if (getRes.ok) {
+                    const fileMeta = await getRes.json();
+                    fileSha = fileMeta.sha;
+                }
 
-                // 2. Envoyer la mise à jour (PUT)
                 const putRes = await fetch(apiUrl, {
                     method: 'PUT',
                     headers: {
@@ -500,7 +522,7 @@
             } catch (err) {
                 console.error("Erreur GitHub API:", err);
                 showToast(err.message, "error");
-                saveLocalOnly(); // Sauvegarde locale de secours
+                saveLocalOnly();
             }
         }
 
@@ -520,21 +542,6 @@
         const saveRegDatabase = () => { saveDataToGitHub("Mise à jour de la base d'immatriculations"); };
 
         function initializeAppData() {
-            const cleanOldArchives = () => {
-                const now = new Date().getTime();
-                const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000;
-                let cleaned = false;
-                aircraftHistory = aircraftHistory.filter(item => {
-                    if (!item.actualDeparture || item.actualDeparture === 'N/A') return true;
-                    const depTime = new Date(item.actualDeparture.replace(' ', 'T') + 'Z').getTime();
-                    if (isNaN(depTime)) return true;
-                    if (now - depTime > fifteenDaysMs) { cleaned = true; return false; }
-                    return true;
-                });
-                if (cleaned) saveHistory();
-            };
-            cleanOldArchives();
-
             for (let code in AppConfig.aircrafts) {
                 let ac = AppConfig.aircrafts[code];
                 if (ac.mototok === '1 palette') ac.mototok = 'Palettes simples';
@@ -562,7 +569,6 @@
 
         document.addEventListener('DOMContentLoaded', async () => {
             await loadDataFromGitHub();
-            // Polling automatique toutes les 25 secondes pour la synchronisation multi-PC en direct
             setInterval(async () => {
                 try {
                     const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`, {
@@ -574,7 +580,6 @@
                         const jsonString = decodeURIComponent(escape(window.atob(fileData.content.replace(/\s/g, ''))));
                         const parsed = JSON.parse(jsonString);
                         
-                        // Mise à jour silencieuse si des changements distants sont détectés
                         if (JSON.stringify(parkedAircraft) !== JSON.stringify(parsed.aeropark_parked) ||
                             JSON.stringify(plannedAircraft) !== JSON.stringify(parsed.aeropark_planned)) {
                             parkedAircraft = parsed.aeropark_parked || {};
