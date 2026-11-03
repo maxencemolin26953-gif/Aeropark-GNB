@@ -5218,7 +5218,30 @@
     "FHYKE": "PC12",
     "F-HSTR": "DA40"
   },
-  "parkedAircraft": {},
+  "parkedAircraft": {
+    "A3": {
+      "type": "GL7T",
+      "reg": "NO-REG",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 31.79,
+        "length": 33.71,
+        "mtow": 48.2,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "lektro": "NIL",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": []
+      },
+      "arr": "2026-11-03T13:34",
+      "dep": "",
+      "autonomous": false,
+      "d5Orientation": null,
+      "comment": ""
+    }
+  },
   "aircraftHistory": [
     {
       "type": "A10",
