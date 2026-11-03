@@ -5265,35 +5265,7 @@
       "id": "plan_1793711841899_p5dur"
     }
   },
-  "aircraftHistory": [
-    {
-      "type": "A10",
-      "reg": "NO-REG",
-      "category": "avion",
-      "specs": {
-        "cat": "avion",
-        "span": 17.53,
-        "length": 16.25,
-        "mtow": 22.7,
-        "mototok": "Non renseigné",
-        "gpu": "Non renseigné",
-        "hydro": "N/A",
-        "parts": "",
-        "incompatiblePush": [
-          "TPX 100",
-          "TPX 200"
-        ],
-        "lektro": "NIL"
-      },
-      "arr": "2026-11-03T00:32",
-      "dep": "2026-11-03T02:32",
-      "autonomous": false,
-      "d5Orientation": null,
-      "comment": "",
-      "stand": "A6",
-      "actualDeparture": "2026-11-03T02:32"
-    }
-  ],
+  "aircraftHistory": [],
   "plannedAircraft": {
     "A6": [],
     "A11": [
