@@ -5273,6 +5273,31 @@
         "comment": "",
         "id": "plan_1793711841899_p5dur"
       }
+    ],
+    "A11": [
+      {
+        "type": "LJ55",
+        "reg": "D-CGBR",
+        "category": "avion",
+        "specs": {
+          "cat": "avion",
+          "span": 13.35,
+          "length": 16.79,
+          "mtow": 8.8,
+          "mototok": "Non renseigné",
+          "gpu": "Non renseigné",
+          "lektro": "NIL",
+          "hydro": "N/A",
+          "parts": "",
+          "incompatiblePush": []
+        },
+        "arr": "2026-11-03T15:25",
+        "dep": "2026-11-03T16:25",
+        "autonomous": true,
+        "d5Orientation": null,
+        "comment": "",
+        "id": "plan_1793712149383_e5n7f"
+      }
     ]
   }
 }
