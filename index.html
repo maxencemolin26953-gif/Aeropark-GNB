@@ -89,6 +89,7 @@
         <div class="flex items-center gap-3">
             <button onclick="openModal('modal-add')" class="bg-amber-400 hover:bg-amber-300 text-slate-950 px-4 py-2 rounded-xl font-bold text-xs transition-colors flex items-center gap-2 shadow-lg shadow-amber-400/20"><i class="fa-solid fa-plane-arrival"></i> Garer</button>
             <button onclick="requestConfigAccess()" class="bg-slate-700 hover:bg-slate-600 text-slate-100 px-4 py-2 rounded-xl font-bold text-xs transition-colors flex items-center gap-2 border border-slate-600"><i class="fa-solid fa-sliders text-amber-300"></i> Config</button>
+            <button onclick="toggleView()" id="btn-toggle-view" class="bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl font-bold text-xs transition-colors flex items-center gap-2 shadow-lg border border-indigo-500/50"><i class="fa-solid fa-calendar-days"></i> Prévisionnel</button>
             <button onclick="exportStandaloneApp()" title="Exporter l'application complète" class="bg-slate-700/60 hover:bg-slate-600 text-slate-300 hover:text-white w-9 h-9 rounded-xl text-xs transition-colors flex items-center justify-center border border-slate-600/60"><i class="fa-solid fa-cloud-arrow-down text-sm"></i></button>
             <button onclick="closeApp()" title="Fermer l'application" class="bg-rose-600/80 hover:bg-rose-600 text-white w-9 h-9 rounded-xl font-bold text-xs transition-colors flex items-center justify-center border border-rose-500/50 shadow-lg ml-2"><i class="fa-solid fa-xmark text-sm"></i></button>
         </div>
@@ -128,26 +129,52 @@
             </div>
         </aside>
 
-        <main class="flex-1 tarmac-bg relative flex items-center justify-center p-6 overflow-hidden">
-            <div class="w-full h-full max-w-[1400px] bg-[#3e4654] rounded-3xl shadow-2xl border border-slate-600/70 relative overflow-hidden flex items-center justify-center">
-                <svg viewBox="0 0 1750 900" preserveAspectRatio="xMidYMid meet" class="w-full h-full drop-shadow-xl" xmlns="http://www.w3.org/2000/svg">
-                    <g transform="translate(30, 0)">
-                        <path d="M 477 -10 L 477 645 C 477 685, 445 685, 395 685 L 125 685" class="taxiway-line" />
-                        <path d="M 477 645 C 477 685, 507 685, 557 685 L 820 685 C 930 685, 1010 745, 1120 745 L 1685 745" class="taxiway-line" />
-                        <line x1="220" y1="56" x2="477" y2="56" class="taxiway-branch" /><line x1="220" y1="171" x2="477" y2="171" class="taxiway-branch" /><line x1="220" y1="286" x2="477" y2="286" class="taxiway-branch" /><line x1="220" y1="401" x2="477" y2="401" class="taxiway-branch" /><line x1="220" y1="516" x2="477" y2="516" class="taxiway-branch" />
-                        <line x1="477" y1="121" x2="740" y2="121" class="taxiway-branch" /><line x1="477" y1="236" x2="740" y2="236" class="taxiway-branch" /><line x1="477" y1="351" x2="740" y2="351" class="taxiway-branch" /><line x1="477" y1="466" x2="740" y2="466" class="taxiway-branch" />
-                        <line x1="660" y1="589" x2="660" y2="685" class="taxiway-branch" /><line x1="820" y1="589" x2="820" y2="685" class="taxiway-branch" />
-                        <line x1="1120" y1="639" x2="1120" y2="745" class="taxiway-branch" /><line x1="1250" y1="704" x2="1250" y2="745" class="taxiway-branch" /><line x1="1380" y1="704" x2="1380" y2="745" class="taxiway-branch" /><line x1="1510" y1="704" x2="1510" y2="745" class="taxiway-branch" /><line x1="1640" y1="704" x2="1640" y2="745" class="taxiway-branch" />
-                        <line x1="157.5" y1="572" x2="157.5" y2="685" class="taxiway-branch" /><line x1="157.5" y1="800" x2="157.5" y2="685" class="taxiway-branch" /><line x1="352.5" y1="800" x2="352.5" y2="685" class="taxiway-branch" /><line x1="547.5" y1="800" x2="547.5" y2="685" class="taxiway-branch" /><line x1="585" y1="-50" x2="477" y2="-118" class="taxiway-branch" />
-                    </g>
-                    <g transform="translate(30, 0)" id="tarmac-stands-svg-group"></g>
-                </svg>
-                <div class="absolute bottom-5 left-5 bg-slate-800/90 backdrop-blur border border-slate-600 px-4 py-2 rounded-xl text-[10px] font-mono font-bold text-slate-200 pointer-events-none shadow-lg tracking-widest flex items-center"><span class="w-2 h-2 rounded-full bg-amber-400 mr-2 animate-pulse"></span> DIRECT TARMAC</div>
-                <button onclick="resetApron()" class="absolute bottom-5 right-5 bg-slate-800 hover:bg-rose-950 text-slate-200 hover:text-rose-300 border border-slate-600 hover:border-rose-800 px-4 py-2 rounded-xl text-[11px] font-mono font-bold transition-colors flex items-center gap-2 shadow-lg"><i class="fa-solid fa-trash-can"></i> Reset</button>
+        <main class="flex-1 tarmac-bg relative flex overflow-hidden">
+            <!-- VUE TARMAC -->
+            <div id="view-tarmac" class="w-full h-full flex items-center justify-center p-6 relative">
+                <div class="w-full h-full max-w-[1400px] bg-[#3e4654] rounded-3xl shadow-2xl border border-slate-600/70 relative overflow-hidden flex items-center justify-center">
+                    <svg viewBox="0 0 1750 900" preserveAspectRatio="xMidYMid meet" class="w-full h-full drop-shadow-xl" xmlns="http://www.w3.org/2000/svg">
+                        <g transform="translate(30, 0)">
+                            <path d="M 477 -10 L 477 645 C 477 685, 445 685, 395 685 L 125 685" class="taxiway-line" />
+                            <path d="M 477 645 C 477 685, 507 685, 557 685 L 820 685 C 930 685, 1010 745, 1120 745 L 1685 745" class="taxiway-line" />
+                            <line x1="220" y1="56" x2="477" y2="56" class="taxiway-branch" /><line x1="220" y1="171" x2="477" y2="171" class="taxiway-branch" /><line x1="220" y1="286" x2="477" y2="286" class="taxiway-branch" /><line x1="220" y1="401" x2="477" y2="401" class="taxiway-branch" /><line x1="220" y1="516" x2="477" y2="516" class="taxiway-branch" />
+                            <line x1="477" y1="121" x2="740" y2="121" class="taxiway-branch" /><line x1="477" y1="236" x2="740" y2="236" class="taxiway-branch" /><line x1="477" y1="351" x2="740" y2="351" class="taxiway-branch" /><line x1="477" y1="466" x2="740" y2="466" class="taxiway-branch" />
+                            <line x1="660" y1="589" x2="660" y2="685" class="taxiway-branch" /><line x1="820" y1="589" x2="820" y2="685" class="taxiway-branch" />
+                            <line x1="1120" y1="639" x2="1120" y2="745" class="taxiway-branch" /><line x1="1250" y1="704" x2="1250" y2="745" class="taxiway-branch" /><line x1="1380" y1="704" x2="1380" y2="745" class="taxiway-branch" /><line x1="1510" y1="704" x2="1510" y2="745" class="taxiway-branch" /><line x1="1640" y1="704" x2="1640" y2="745" class="taxiway-branch" />
+                            <line x1="157.5" y1="572" x2="157.5" y2="685" class="taxiway-branch" /><line x1="157.5" y1="800" x2="157.5" y2="685" class="taxiway-branch" /><line x1="352.5" y1="800" x2="352.5" y2="685" class="taxiway-branch" /><line x1="547.5" y1="800" x2="547.5" y2="685" class="taxiway-branch" /><line x1="585" y1="-50" x2="477" y2="-118" class="taxiway-branch" />
+                        </g>
+                        <g transform="translate(30, 0)" id="tarmac-stands-svg-group"></g>
+                    </svg>
+                    <div class="absolute bottom-5 left-5 bg-slate-800/90 backdrop-blur border border-slate-600 px-4 py-2 rounded-xl text-[10px] font-mono font-bold text-slate-200 pointer-events-none shadow-lg tracking-widest flex items-center"><span class="w-2 h-2 rounded-full bg-amber-400 mr-2 animate-pulse"></span> DIRECT TARMAC</div>
+                    <button onclick="resetApron()" class="absolute bottom-5 right-5 bg-slate-800 hover:bg-rose-950 text-slate-200 hover:text-rose-300 border border-slate-600 hover:border-rose-800 px-4 py-2 rounded-xl text-[11px] font-mono font-bold transition-colors flex items-center gap-2 shadow-lg"><i class="fa-solid fa-trash-can"></i> Reset</button>
+                </div>
+            </div>
+
+            <!-- VUE PRÉVISIONNELLE (PLANNING) -->
+            <div id="view-plan" class="hidden w-full h-full bg-[#131b2e] flex-col p-6 z-20">
+                <div class="flex justify-between items-center bg-slate-800 p-4 rounded-xl border border-slate-700 mb-4 shrink-0 shadow-lg">
+                    <div class="flex items-center gap-2 bg-slate-900 p-1 rounded-lg border border-slate-700">
+                        <button onclick="changePlanScale('day')" id="btn-scale-day" class="px-4 py-1.5 rounded text-xs font-bold bg-indigo-500 text-white shadow">Jour</button>
+                        <button onclick="changePlanScale('week')" id="btn-scale-week" class="px-4 py-1.5 rounded text-xs font-bold text-slate-400 hover:text-white transition">Semaine</button>
+                        <button onclick="changePlanScale('month')" id="btn-scale-month" class="px-4 py-1.5 rounded text-xs font-bold text-slate-400 hover:text-white transition">Mois</button>
+                    </div>
+                    <div class="flex items-center gap-6 text-indigo-300 font-mono font-bold text-sm bg-slate-900 px-4 py-2 rounded-lg border border-slate-700 shadow-inner">
+                        <button onclick="movePlanDate(-1)" class="hover:text-white transition"><i class="fa-solid fa-chevron-left"></i></button>
+                        <span id="plan-date-label">03 NOV 2026</span>
+                        <button onclick="movePlanDate(1)" class="hover:text-white transition"><i class="fa-solid fa-chevron-right"></i></button>
+                    </div>
+                    <button onclick="resetPlanDate()" class="bg-slate-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-600 text-white border border-slate-600 transition shadow">Aujourd'hui</button>
+                </div>
+                <div class="flex-1 overflow-auto custom-scrollbar bg-slate-800 rounded-xl border border-slate-700 relative shadow-inner">
+                    <div id="plan-grid-content" class="min-w-max relative pb-6">
+                        <!-- Rempli par JavaScript -->
+                    </div>
+                </div>
             </div>
         </main>
     </div>
 
+    <!-- Modals -->
     <div id="modal-overlay" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-40 hidden transition-opacity"></div>
 
     <div id="modal-lock" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 sm:p-6">
@@ -240,6 +267,21 @@
             <div class="p-5 border-b border-slate-700 flex items-center justify-between shrink-0 relative z-20 bg-slate-800 rounded-t-2xl"><h3 class="font-bold text-lg text-white flex items-center gap-2"><i class="fa-solid fa-square-parking text-amber-400"></i> POSTE <span id="modal-stand-id" class="text-amber-400 font-mono"></span></h3><button onclick="closeModal('modal-stand')" class="text-slate-300 hover:text-white p-1 transition"><i class="fa-solid fa-xmark text-lg"></i></button></div>
             <div class="p-6 overflow-y-auto custom-scrollbar flex-1 relative z-10 space-y-4 overflow-visible" id="stand-content"></div>
             <div id="stand-actions" class="p-4 border-t border-slate-700 bg-slate-800 rounded-b-2xl flex items-center justify-between shrink-0 relative z-0"></div>
+        </div>
+    </div>
+
+    <!-- Modale Action Prévisionnel -->
+    <div id="modal-plan-action" class="fixed inset-0 z-[80] hidden items-center justify-center p-4">
+        <div class="bg-slate-800 border border-slate-600 rounded-2xl w-full max-w-md shadow-2xl flex flex-col font-mono text-xs text-slate-100 fade-in">
+            <div class="p-4 border-b border-slate-700 flex items-center justify-between"><h3 class="font-bold text-white"><i class="fa-solid fa-calendar-check text-indigo-400 mr-2"></i> Fiche Vol Prévisionnel</h3><button onclick="closeModal('modal-plan-action')" class="text-slate-300 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button></div>
+            <div class="p-5 space-y-4 overflow-y-auto max-h-[70vh] custom-scrollbar" id="plan-action-content"></div>
+            <div class="p-4 border-t border-slate-700 flex justify-between gap-2">
+                <button onclick="deletePlan()" class="px-4 py-2 bg-rose-600/80 text-white rounded-xl font-bold hover:bg-rose-600 transition"><i class="fa-solid fa-trash-can mr-1"></i> Supprimer</button>
+                <div class="flex gap-2">
+                    <button onclick="savePlanEdit()" class="px-4 py-2 bg-slate-700 text-white rounded-xl font-bold hover:bg-slate-600 transition">Enregistrer</button>
+                    <button onclick="validatePlan()" class="px-4 py-2 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl font-bold shadow transition"><i class="fa-solid fa-plane-arrival mr-1"></i> Garer (Direct)</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -336,11 +378,15 @@
             }
         };
 
-        let AppConfig = JSON.parse(localStorage.getItem('AppConfig')) || defaultConfig;
-        let regDatabase = JSON.parse(localStorage.getItem('regDatabase')) || {};
-        let parkedAircraft = JSON.parse(localStorage.getItem('parkedAircraft')) || {};
-        let aircraftHistory = JSON.parse(localStorage.getItem('aircraftHistory')) || [];
+        let AppConfig = JSON.parse(localStorage.getItem('aeropark_config')) || defaultConfig;
+        let regDatabase = JSON.parse(localStorage.getItem('aeropark_regs')) || {};
+        let parkedAircraft = JSON.parse(localStorage.getItem('aeropark_parked')) || {};
+        let aircraftHistory = JSON.parse(localStorage.getItem('aeropark_history')) || [];
+        let plannedAircraft = JSON.parse(localStorage.getItem('aeropark_planned')) || {};
         
+        let currentView = 'tarmac';
+        let planConfig = { scale: 'day', start: new Date().setHours(0,0,0,0) };
+
         if (!AppConfig.timezone) AppConfig.timezone = 'UTC+1';
 
         const cleanOldArchives = () => {
@@ -354,7 +400,7 @@
                 if (now - depTime > fifteenDaysMs) { cleaned = true; return false; }
                 return true;
             });
-            if (cleaned) localStorage.setItem('aircraftHistory', JSON.stringify(aircraftHistory));
+            if (cleaned) localStorage.setItem('aeropark_history', JSON.stringify(aircraftHistory));
         };
         cleanOldArchives();
 
@@ -403,45 +449,335 @@
             return Object.values(parkedAircraft).some(ac => ac.reg && ac.reg.trim().toUpperCase() === clean);
         };
 
-        const saveConfig = () => { 
-            localStorage.setItem('AppConfig', JSON.stringify(AppConfig)); 
-            updateCondemnedMap(); 
-            updateApronDisplay(); 
-            saveToGitHub(); 
-        };
+        const saveConfig = () => { localStorage.setItem('aeropark_config', JSON.stringify(AppConfig)); updateCondemnedMap(); updateApronDisplay(); renderPlanning(); };
+        const saveParked = () => { localStorage.setItem('aeropark_parked', JSON.stringify(parkedAircraft)); updateCondemnedMap(); };
+        const savePlanned = () => { localStorage.setItem('aeropark_planned', JSON.stringify(plannedAircraft)); };
+        const saveHistory = () => localStorage.setItem('aeropark_history', JSON.stringify(aircraftHistory));
+        const saveRegDatabase = () => localStorage.setItem('aeropark_regs', JSON.stringify(regDatabase));
 
-       const saveParked = () => { 
-    localStorage.setItem('parkedAircraft', JSON.stringify(parkedAircraft)); 
-    updateCondemnedMap(); 
-    saveToGitHub(); // <-- Envoi immédiat et automatique vers le fichier distant GitHub
-};
+        document.addEventListener('DOMContentLoaded', () => {
+            updateTZUI(); updateCondemnedMap(); initApron(); switchTab('sidebar', 'aircraft'); updateApronDisplay(); setDefaultDates();
+        });
 
-const saveHistory = () => { 
-    localStorage.setItem('aircraftHistory', JSON.stringify(aircraftHistory)); 
-    saveToGitHub(); 
-};
+        function toggleView() {
+            currentView = currentView === 'tarmac' ? 'plan' : 'tarmac';
+            $('view-tarmac').classList.toggle('hidden', currentView === 'plan');
+            $('view-plan').classList.toggle('hidden', currentView === 'tarmac');
+            $('view-plan').classList.toggle('flex', currentView === 'plan');
+            
+            const btn = $('btn-toggle-view');
+            if (currentView === 'plan') {
+                btn.innerHTML = `<i class="fa-solid fa-map"></i> Tarmac`;
+                btn.className = "bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-xl font-bold text-xs transition-colors flex items-center gap-2 shadow-lg border border-slate-600";
+                renderPlanning();
+            } else {
+                btn.innerHTML = `<i class="fa-solid fa-calendar-days"></i> Prévisionnel`;
+                btn.className = "bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl font-bold text-xs transition-colors flex items-center gap-2 shadow-lg border border-indigo-500/50";
+                updateApronDisplay();
+            }
+        }
 
-const saveRegDatabase = () => { 
-    localStorage.setItem('regDatabase', JSON.stringify(regDatabase)); 
-    saveToGitHub(); 
-};
+        function checkConflict(sId, newArrMs, newDepMs, excludePlanId = null) {
+            if (newDepMs <= newArrMs) return "L'heure de départ doit être après l'arrivée.";
+            const live = parkedAircraft[sId];
+            if (live) {
+                const liveArrMs = live.arr && live.arr !== 'N/A' ? new Date(live.arr + 'Z').getTime() : Date.now();
+                const liveDepMs = live.dep && live.dep !== 'N/A' && live.dep !== '' ? new Date(live.dep + 'Z').getTime() : Infinity;
+                if (newArrMs < liveDepMs && newDepMs > liveArrMs) return "Conflit avec l'aéronef actuellement sur le poste.";
+            }
+            const plans = plannedAircraft[sId] || [];
+            for (let i = 0; i < plans.length; i++) {
+                if (plans[i].id === excludePlanId) continue;
+                const pArrMs = new Date(plans[i].arr + 'Z').getTime();
+                const pDepMs = new Date(plans[i].dep + 'Z').getTime();
+                if (newArrMs < pDepMs && newDepMs > pArrMs) return `Créneau en conflit avec un vol prévu (${plans[i].type} / ${plans[i].reg}).`;
+            }
+            return null;
+        }
 
-function initApron() {
-    const svgGroup = $('tarmac-stands-svg-group');
-    if (!svgGroup) return;
-    svgGroup.innerHTML = '';
-    for (const [sId, specs] of Object.entries(AppConfig.stands)) {
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        g.setAttribute('id', `stand-group-${sId}`); g.setAttribute('onclick', `clickStand('${sId}')`);
-        g.addEventListener('mouseenter', (e) => handleTooltipEnter(e, sId)); 
-        g.addEventListener('mousemove', moveTooltip); 
-        g.addEventListener('mouseleave', hideTooltip);
+        function changePlanScale(scale) {
+            planConfig.scale = scale;
+            ['day', 'week', 'month'].forEach(s => {
+                const btn = $(`btn-scale-${s}`);
+                if (btn) btn.className = s === scale ? "px-4 py-1.5 rounded text-xs font-bold bg-indigo-500 text-white shadow" : "px-4 py-1.5 rounded text-xs font-bold text-slate-400 hover:text-white transition";
+            });
+            renderPlanning();
+        }
 
-        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rect.setAttribute('id', `stand-rect-${sId}`);
-        rect.setAttribute('x', specs.x); rect.setAttribute('y', specs.y); 
-        rect.setAttribute('width', specs.w); rect.setAttribute('height', specs.h); rect.setAttribute('rx', specs.rx || 4);
-        g.appendChild(rect);
+        function movePlanDate(dir) {
+            const d = new Date(planConfig.start);
+            if (planConfig.scale === 'day') d.setDate(d.getDate() + dir);
+            else if (planConfig.scale === 'week') d.setDate(d.getDate() + dir * 7);
+            else d.setMonth(d.getMonth() + dir);
+            planConfig.start = d.getTime();
+            renderPlanning();
+        }
+
+        function resetPlanDate() {
+            const d = new Date(); d.setHours(0,0,0,0);
+            planConfig.start = d.getTime();
+            renderPlanning();
+        }
+
+        function renderPlanning() {
+            if (currentView !== 'plan') return;
+            const container = $('plan-grid-content');
+            const startMs = planConfig.start;
+            let durationMs, totalWidthPx, tickMs;
+            
+            if (planConfig.scale === 'day') {
+                durationMs = 24 * 3600 * 1000; totalWidthPx = 1200; tickMs = 3600 * 1000;
+            } else if (planConfig.scale === 'week') {
+                durationMs = 7 * 24 * 3600 * 1000; totalWidthPx = 1400; tickMs = 24 * 3600 * 1000;
+            } else { 
+                durationMs = 30 * 24 * 3600 * 1000; totalWidthPx = 2000; tickMs = 24 * 3600 * 1000;
+            }
+            const pxPerMs = totalWidthPx / durationMs;
+            const endMs = startMs + durationMs;
+            
+            $('plan-date-label').textContent = new Date(startMs).toLocaleDateString('fr-FR', {day:'2-digit', month:'short', year:'numeric'}).toUpperCase();
+
+            // Calcul de la position de la ligne de date/heure actuelle
+            const nowMs = Date.now();
+            const nowLeft = (nowMs - startMs) * pxPerMs;
+            const showNowLine = nowMs >= startMs && nowMs <= endMs;
+
+            let html = `<div class="flex border-b border-slate-700 bg-slate-900 sticky top-0 z-10 shadow-sm"><div class="w-32 shrink-0 border-r border-slate-700 p-2 font-bold text-slate-400 text-xs flex items-center justify-center bg-slate-900 sticky left-0 z-20">POSTES</div><div class="relative flex-1" style="height: 30px; width: ${totalWidthPx}px; min-width: ${totalWidthPx}px;">`;
+            
+            for (let t = startMs; t < endMs; t += tickMs) {
+                const left = (t - startMs) * pxPerMs;
+                const dateObj = new Date(t);
+                let label = planConfig.scale === 'day' ? dateObj.getHours() + 'h' : dateObj.getDate() + '/' + (dateObj.getMonth()+1);
+                html += `<div class="absolute top-0 bottom-0 border-l border-slate-700/50 text-[9px] text-slate-500 pl-1 pt-1" style="left: ${left}px;">${label}</div>`;
+            }
+
+            if (showNowLine) {
+                html += `<div class="absolute top-0 bottom-0 z-30 pointer-events-none" style="left: ${nowLeft}px;"><div class="absolute -top-1 -translate-x-1/2 bg-rose-500 text-white text-[8px] font-bold px-1 rounded shadow">Actuel</div><div class="w-0.5 h-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]"></div></div>`;
+            }
+
+            html += `</div></div>`;
+
+            const previewItem = activePreviewType ? AppConfig.aircrafts[activePreviewType] : null;
+
+            for (const [sId, specs] of Object.entries(AppConfig.stands)) {
+                let rowBgClass = "hover:bg-slate-800/50 transition";
+                let badgeIndicator = "";
+                
+                if (previewItem) {
+                    const compat = isCompatible(previewItem, sId);
+                    if (compat) {
+                        rowBgClass = "bg-emerald-950/20 hover:bg-emerald-950/40 transition border-l-4 border-emerald-500";
+                        badgeIndicator = `<span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1 rounded ml-1 font-bold">Compatible</span>`;
+                    } else {
+                        rowBgClass = "bg-rose-950/20 hover:bg-rose-950/40 transition border-l-4 border-rose-500";
+                        badgeIndicator = `<span class="text-[9px] bg-rose-500/20 text-rose-300 px-1 rounded ml-1 font-bold">Incompatible</span>`;
+                    }
+                }
+
+                html += `<div class="flex border-b border-slate-700/50 ${rowBgClass}"><div class="w-32 shrink-0 border-r border-slate-700 p-2 font-bold text-amber-300 text-xs flex items-center justify-between px-3 bg-slate-900 sticky left-0 z-10"><span>Poste ${sId}</span> ${badgeIndicator}</div><div onclick="clickPlanGridCell(event, '${sId}', ${startMs}, ${pxPerMs})" class="relative flex-1 cursor-pointer" style="height: 48px; width: ${totalWidthPx}px; min-width: ${totalWidthPx}px;">`;
+                
+                if (showNowLine) {
+                    html += `<div class="absolute top-0 bottom-0 w-0.5 bg-rose-500/50 pointer-events-none z-10" style="left: ${nowLeft}px;"></div>`;
+                }
+
+                const live = parkedAircraft[sId];
+                if (live) {
+                    const lArr = live.arr && live.arr !== 'N/A' ? new Date(live.arr + 'Z').getTime() : startMs;
+                    const lDep = live.dep && live.dep !== 'N/A' && live.dep !== '' ? new Date(live.dep + 'Z').getTime() : endMs;
+                    if (lArr < endMs && lDep > startMs) {
+                        const blockLeft = Math.max(0, (lArr - startMs) * pxPerMs);
+                        const blockRight = Math.min(totalWidthPx, (lDep - startMs) * pxPerMs);
+                        const blockWidth = blockRight - blockLeft;
+                        html += `<div class="absolute top-1.5 bottom-1.5 bg-blue-900/80 border border-blue-500 rounded-md shadow flex flex-col justify-center px-2 overflow-hidden cursor-not-allowed z-0" style="left: ${blockLeft}px; width: ${blockWidth}px;" title="Actuellement Garé: ${live.type} ${live.reg}">
+                            <span class="text-[10px] font-bold text-white whitespace-nowrap">${live.type} ${live.reg}</span>
+                            <span class="text-[8px] text-blue-300 whitespace-nowrap"><i class="fa-solid fa-plane"></i> TARMAC</span>
+                        </div>`;
+                    }
+                }
+
+                const plans = plannedAircraft[sId] || [];
+                for (let p of plans) {
+                    const pArr = new Date(p.arr + 'Z').getTime();
+                    const pDep = new Date(p.dep + 'Z').getTime();
+                    if (pArr < endMs && pDep > startMs) {
+                        const blockLeft = Math.max(0, (pArr - startMs) * pxPerMs);
+                        const blockRight = Math.min(totalWidthPx, (pDep - startMs) * pxPerMs);
+                        const blockWidth = Math.max(4, blockRight - blockLeft);
+                        
+                        html += `<div onclick="event.stopPropagation(); openPlanAction('${sId}', '${p.id}')" class="absolute top-1.5 bottom-1.5 bg-indigo-900/80 border border-indigo-400 rounded-md shadow flex flex-col justify-center px-2 overflow-hidden cursor-pointer hover:bg-indigo-800 hover:border-indigo-300 transition z-0" style="left: ${blockLeft}px; width: ${blockWidth}px;" title="Prévu: ${p.type} ${p.reg}\nArr: ${p.arr.replace('T',' ')}\nDep: ${p.dep.replace('T',' ')}">
+                            <span class="text-[10px] font-bold text-white whitespace-nowrap">${p.type} ${p.reg}</span>
+                            <span class="text-[8px] text-indigo-300 whitespace-nowrap"><i class="fa-solid fa-clock"></i> PRÉVU</span>
+                        </div>`;
+                    }
+                }
+                html += `</div></div>`;
+            }
+            container.innerHTML = html;
+        }
+
+        function clickPlanGridCell(e, sId, startMs, pxPerMs) {
+            const previewItem = activePreviewType ? AppConfig.aircrafts[activePreviewType] : null;
+            if (previewItem && !isCompatible(previewItem, sId)) {
+                showToast("Poste incompatible avec le type d'avion sélectionné", "error");
+                return;
+            }
+
+            const rect = e.currentTarget.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickedTimeMs = startMs + (clickX / pxPerMs);
+            const clickedDate = new Date(clickedTimeMs);
+            
+            const arrStr = clickedDate.toISOString().slice(0, 16);
+            clickedDate.setHours(clickedDate.getHours() + 2);
+            const depStr = clickedDate.toISOString().slice(0, 16);
+
+            openModal('modal-add');
+            $('ac-stand').value = sId;
+            $('dropdown-add-lbl').textContent = `Poste ${sId}`;
+            $('ac-arr').value = arrStr;
+            $('ac-dep').value = depStr;
+            if (activePreviewType) {
+                $('ac-type').value = activePreviewType;
+                if (activePreviewReg) $('ac-reg').value = activePreviewReg;
+                processAddFormContext(activePreviewType);
+            } else {
+                const currentType = $('ac-type').value.trim().toUpperCase();
+                if (currentType) processAddFormContext(currentType);
+            }
+        }
+
+        let activePlanData = null;
+        function openPlanAction(sId, planId) {
+            const plans = plannedAircraft[sId] || [];
+            const p = plans.find(x => x.id === planId);
+            if (!p) return;
+            activePlanData = { sId, planId };
+            $('plan-action-content').innerHTML = `
+                <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Type OACI</label>
+                            <input type="text" id="edit-plan-type" value="${p.type}" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white font-bold uppercase">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Immatriculation</label>
+                            <input type="text" id="edit-plan-reg" value="${p.reg}" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white font-bold uppercase">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Arrivée UTC</label>
+                            <input type="datetime-local" id="edit-plan-arr" value="${p.arr}" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white font-mono text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Départ UTC</label>
+                            <input type="datetime-local" id="edit-plan-dep" value="${p.dep}" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white font-mono text-xs">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold"><i class="fa-solid fa-comment-dots text-amber-300 mr-1"></i> Commentaire / Note</label>
+                        <textarea id="edit-plan-comment" rows="2" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white resize-none">${p.comment || ''}</textarea>
+                    </div>
+                </div>
+            `;
+            openModal('modal-plan-action');
+        }
+
+        function savePlanEdit() {
+            if (!activePlanData) return;
+            const { sId, planId } = activePlanData;
+            const plans = plannedAircraft[sId] || [];
+            const idx = plans.findIndex(x => x.id === planId);
+            if (idx === -1) return;
+
+            let newType = $('edit-plan-type').value.trim().toUpperCase();
+            let newReg = $('edit-plan-reg').value.trim().toUpperCase() || 'NO-REG';
+            let newArr = $('edit-plan-arr').value;
+            let newDep = $('edit-plan-dep').value;
+            let newComment = $('edit-plan-comment').value;
+
+            if (!newType) return showToast("Type OACI requis", "error");
+            let newArrMs = new Date(newArr + 'Z').getTime();
+            let newDepMs = new Date(newDep + 'Z').getTime();
+            if (newDepMs <= newArrMs) return showToast("L'heure de départ doit être après l'arrivée", "error");
+
+            const conflictError = checkConflict(sId, newArrMs, newDepMs, planId);
+            if (conflictError) return showToast(conflictError, "error");
+
+            const info = AppConfig.aircrafts[newType] || { cat: 'avion', span: 99, length: 99, mtow: 0 };
+            if (!isCompatible(info, sId)) return showToast("Aéronef incompatible avec ce poste", "error");
+
+            plans[idx].type = newType;
+            plans[idx].reg = newReg;
+            plans[idx].arr = newArr;
+            plans[idx].dep = newDep;
+            plans[idx].comment = newComment;
+            plans[idx].category = info.cat;
+            plans[idx].specs = info;
+
+            savePlanned();
+            closeModal('modal-plan-action');
+            renderPlanning();
+            showToast("Vol prévisionnel mis à jour");
+        }
+
+        function deletePlan() {
+            if (!activePlanData) return;
+            if (confirm("Supprimer ce vol prévisionnel ?")) {
+                const {sId, planId} = activePlanData;
+                plannedAircraft[sId] = plannedAircraft[sId].filter(x => x.id !== planId);
+                savePlanned();
+                closeModal('modal-plan-action');
+                renderPlanning();
+                showToast("Vol prévisionnel supprimé");
+            }
+        }
+
+        function validatePlan() {
+            if (!activePlanData) return;
+            const {sId, planId} = activePlanData;
+            const plans = plannedAircraft[sId] || [];
+            const p = plans.find(x => x.id === planId);
+            if (!p) return;
+
+            if (parkedAircraft[sId]) {
+                showToast("Le poste est actuellement occupé en direct !", "error");
+                return;
+            }
+
+            const nowIso = getUtcDateString();
+            const nowMs = new Date(nowIso + 'Z').getTime();
+            const oldArrMs = new Date(p.arr + 'Z').getTime();
+            
+            if (nowMs < oldArrMs) {
+                p.arr = nowIso;
+            }
+
+            parkedAircraft[sId] = p;
+            plannedAircraft[sId] = plannedAircraft[sId].filter(x => x.id !== planId);
+            
+            saveParked();
+            savePlanned();
+            closeModal('modal-plan-action');
+            renderPlanning();
+            updateApronDisplay();
+            showToast(`Vol ${p.reg} garé en direct sur ${sId}`, "success");
+        }
+
+        function initApron() {
+            const svgGroup = $('tarmac-stands-svg-group');
+            if (!svgGroup) return;
+            svgGroup.innerHTML = '';
+            for (const [sId, specs] of Object.entries(AppConfig.stands)) {
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('id', `stand-group-${sId}`); g.setAttribute('onclick', `clickStand('${sId}')`);
+                g.addEventListener('mouseenter', (e) => handleTooltipEnter(e, sId)); g.addEventListener('mousemove', moveTooltip); g.addEventListener('mouseleave', hideTooltip);
+
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('id', `stand-rect-${sId}`);
+                rect.setAttribute('x', specs.x); rect.setAttribute('y', specs.y); 
+                rect.setAttribute('width', specs.w); rect.setAttribute('height', specs.h); rect.setAttribute('rx', specs.rx || 4);
+                g.appendChild(rect);
 
                 const iconLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
                 iconLayer.setAttribute('id', `stand-icon-${sId}`); iconLayer.setAttribute('pointer-events', 'none');
@@ -492,6 +828,7 @@ function initApron() {
                 } else iconLayer.innerHTML = '';
             }
             updateSidebarList();
+            renderPlanning();
         }
         
         function handleTooltipEnter(e, sId) {
@@ -514,9 +851,9 @@ function initApron() {
                 b.innerHTML = `<div><strong>Aperçu :</strong> ${activePreviewType}${activePreviewReg ? ' - ' + activePreviewReg : ''}</div><div class="mt-1 pt-1 border-t border-slate-600">Départ: ${autoCapText}</div>${constraintHtml}`;
                 if (!compat) b.innerHTML += `<div class="text-rose-300 mt-1"><i class="fa-solid fa-triangle-exclamation"></i> Dimensions hors limites</div>`;
             } else if (previewItem && (ac || isCondemned)) {
-                let reason = ac ? 'Poste déjà occupé' : `Condamné par ${condemningStandsArray ? condemningStandsArray.join(', ') : ''}`;
+                let reason = ac ? 'Poste occupé' : `Condamné par ${condemningStandsArray ? condemningStandsArray.join(', ') : ''}`;
                 h.innerHTML = `<span class="text-amber-300 font-bold text-sm">Poste ${standId}</span> <span class="text-rose-300 text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-700">${reason}</span>`;
-                b.innerHTML = `<div><strong>Aperçu :</strong> ${activePreviewType}${activePreviewReg ? ' - ' + activePreviewReg : ''}</div><div class="text-rose-300 mt-1"><i class="fa-solid fa-triangle-exclamation"></i> Ce poste n'est pas disponible</div>${constraintHtml}`;
+                b.innerHTML = `<div><strong>Aperçu :</strong> ${activePreviewType}${activePreviewReg ? ' - ' + activePreviewReg : ''}</div><div class="text-rose-300 mt-1"><i class="fa-solid fa-triangle-exclamation"></i> Poste indisponible</div>${constraintHtml}`;
             } else if (ac) {
                 h.innerHTML = `<span class="text-amber-300 font-bold text-sm">Poste ${standId}</span> <span class="text-blue-300 text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-700">Poste occupé</span> ${getBadge(ac.category)}`;
                 b.innerHTML = `<div><strong>Type:</strong> ${ac.type}</div><div><strong>Immat:</strong> ${ac.reg}</div><div class="mt-1 pt-1 border-t border-slate-600">Départ: ${autoCapText}</div>`;
@@ -541,25 +878,12 @@ function initApron() {
         function hideTooltip() { $('custom-tooltip').style.display = 'none'; }
         
         function launchAppFullscreen() {
-    const el = document.documentElement;
-    const rfs = el.requestFullscreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-    if (rfs) {
-        rfs.call(el).catch(err => console.warn("Plein écran refusé :", err));
-    }
-    const launcher = $('app-launcher-overlay');
-    if (launcher) {
-        launcher.style.opacity = '0';
-        setTimeout(() => launcher.remove(), 300);
-    }
-}
-    
-    // 2. On supprime l'overlay de démarrage de manière garantie
-    const launcher = $('app-launcher-overlay');
-    if (launcher) {
-        launcher.style.opacity = '0';
-        launcher.style.pointerEvents = 'none'; // Désactive les clics immédiatement
-        setTimeout(() => launcher.remove(), 300);
-    }
+            const el = document.documentElement;
+            const rfs = el.requestFullscreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+            if (rfs) rfs.call(el).catch(()=>{});
+            const launcher = $('app-launcher-overlay');
+            if (launcher) { launcher.style.opacity = '0'; setTimeout(() => launcher.remove(), 300); }
+        }
 
         function closeApp() {
             if (confirm("Voulez-vous vraiment fermer l'application ?")) {
@@ -570,12 +894,11 @@ function initApron() {
         }
 
         function exportStandaloneApp() {
-            const dataToExport = { AppConfig: AppConfig, parkedAircraft: parkedAircraft, aircraftHistory: aircraftHistory, regDatabase: regDatabase };
+            const dataToExport = { aeropark_config: AppConfig, aeropark_parked: parkedAircraft, aeropark_planned: plannedAircraft, aeropark_history: aircraftHistory, aeropark_regs: regDatabase };
             const dataStr = encodeURIComponent(JSON.stringify(dataToExport));
             const docClone = document.documentElement.cloneNode(true);
             
             docClone.querySelectorAll('.aeropark-injection').forEach(el => el.remove());
-            
             const overlay = docClone.querySelector('#app-launcher-overlay');
             if (overlay) overlay.removeAttribute('style');
             
@@ -617,22 +940,14 @@ function initApron() {
         }
 
         const getTZOffset = () => AppConfig.timezone === 'UTC+2' ? 2 : 1;
-
-        const getUtcDateString = (dateObj = new Date()) => {
-            return dateObj.toISOString().slice(0, 16);
-        };
+        const getUtcDateString = (dateObj = new Date()) => { return dateObj.toISOString().slice(0, 16); };
         
         function setNowUtc(id) {
             const el = $(id);
-            if(el) {
-                el.value = getUtcDateString();
-                if(el.onchange) el.onchange();
-            }
+            if(el) { el.value = getUtcDateString(); if(el.onchange) el.onchange(); }
         }
 
-        function setDefaultDates() { 
-            if($('ac-arr')) $('ac-arr').value = getUtcDateString(); 
-        }
+        function setDefaultDates() { if($('ac-arr')) $('ac-arr').value = getUtcDateString(); }
 
         function triggerEE() {
             eeClicks++; clearTimeout(eeTimer); eeTimer = setTimeout(()=>eeClicks=0, 1000);
@@ -685,7 +1000,7 @@ function initApron() {
             if (group === 'sidebar') {
                 if (tab !== 'aircraft') {
                     $('sidebar-aircraft-search').value = ''; $('sidebar-aircraft-result').innerHTML = ''; $('push-result-container').innerHTML = '';
-                    activePreviewType = null; activePreviewReg = null;
+                    activePreviewType = null; activePreviewReg = null; updateApronDisplay();
                 }
                 ['parkings', 'aircraft', 'history'].forEach(t => {
                     const el = $(`content-sidebar-${t}`); if (el) el.classList.toggle('hidden', t !== tab);
@@ -750,7 +1065,7 @@ function initApron() {
         function updateSidebarList() {
             const list = $('active-list-container'), searchInput = $('sidebar-parkings-search');
             const filterQuery = searchInput ? searchInput.value.trim().toUpperCase() : '';
-            if(Object.keys(parkedAircraft).length === 0) { list.innerHTML = `<div class="text-center py-12 text-slate-400 text-[11px] font-mono">Aucun aéronef sur le tarmac.</div>`; return; }
+            if(Object.keys(parkedAircraft).length === 0) { list.innerHTML = `<div class="text-center py-12 text-slate-400 text-[11px] font-mono">Aucun aéronef en direct.</div>`; return; }
             list.innerHTML = ''; let countDisplayed = 0;
 
             for (const [sId, ac] of Object.entries(parkedAircraft)) {
@@ -906,16 +1221,11 @@ function initApron() {
 
             container.innerHTML = matches.map(code => {
                 const item = AppConfig.aircrafts[code];
-                let compatHtml = '', clickHandler = `onclick="selectSearch('${mode}', '${code}')"`, cursorCls = 'cursor-pointer hover:bg-slate-600';
+                let clickHandler = `onclick="selectSearch('${mode}', '${code}')"`, cursorCls = 'cursor-pointer hover:bg-slate-600';
+                let associatedRegs = Object.entries(regDatabase).filter(([r, t]) => t === code).map(([r]) => r);
+                let regTag = associatedRegs.length > 0 ? `<span class="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-mono text-[9px] border border-amber-400/40 ml-2">[${associatedRegs.join(', ')}]</span>` : '';
 
-                if (mode !== 'add' && mode !== 'immat-add') {
-                    const compat = isCompatible(item, mode), occ = parkedAircraft[mode], cond = isStandCondemned(mode);
-                    if (!compat || occ || cond) {
-                        compatHtml = `<span class="text-[9px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 ml-2">${!compat ? 'INCOMPATIBLE' : (occ ? 'OCCUPÉ' : 'CONDAMNÉ')}</span>`;
-                        clickHandler = ''; cursorCls = 'cursor-not-allowed bg-slate-800/50 text-slate-400';
-                    } else compatHtml = `<span class="text-[9px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 ml-2">COMPATIBLE</span>`;
-                }
-                return `<div class="px-4 py-2 border-b border-slate-600 font-mono text-[10px] flex justify-between items-center ${cursorCls}" ${clickHandler}><span class="flex items-center"><strong class="text-amber-300 text-xs mr-1">${code}</strong> (${item.cat}) ${compatHtml}</span><span>${item.cat === 'helico' ? 'Rotor' : 'Env'}: ${item.span}m</span></div>`;
+                return `<div class="px-4 py-2 border-b border-slate-600 font-mono text-[10px] flex justify-between items-center ${cursorCls}" ${clickHandler}><span class="flex items-center"><strong class="text-amber-300 text-xs mr-1">${code}</strong> (${item.cat}) ${regTag}</span><span>${item.cat === 'helico' ? 'Rotor' : 'Env'}: ${item.span}m</span></div>`;
             }).join('');
             container.classList.remove('hidden');
         }
@@ -959,7 +1269,7 @@ function initApron() {
 
         function processAddFormContext(code) {
             const item = AppConfig.aircrafts[code], prev = $('ac-specs-preview'), stand = $('ac-stand').value;
-            updateDropdownAdd(code);
+            updateDropdownAdd();
             if(item) {
                 const isH = item.cat === 'helico';
                 prev.innerHTML = `<div class="flex gap-2 items-center mb-1"><strong class="text-amber-300">${code}</strong> ${getBadge(item.cat)}</div><div class="text-slate-300 flex justify-between items-center"><span>${isH?'Rotor':'Env'}: ${item.span}m</span> <span>${isH?'LHT':'Long'}: ${item.length}m</span> <span>MTOW: ${item.mtow}T</span></div>${isH?`<div class="mt-1 pt-1 border-t border-slate-700 text-[11px]">Type d'atterrissage (T/A) : <strong class="text-emerald-300 uppercase">${item.gear || 'patins'}</strong></div>`:''}`;
@@ -967,24 +1277,39 @@ function initApron() {
             } else { prev.classList.add('hidden'); evalStandOptions('', null, 'add'); }
         }
 
-        function updateDropdownAdd(code = '') {
+        function updateDropdownAdd() {
+            const code = $('ac-type').value.trim().toUpperCase();
+            const arr = $('ac-arr').value;
+            const dep = $('ac-dep').value;
             const list = $('dropdown-add'), item = AppConfig.aircrafts[code];
             list.innerHTML = `<div class="px-4 py-3 text-xs text-amber-300 hover:bg-slate-600 cursor-pointer border-b border-slate-600 font-mono" onclick="setStandAdd('', '-- Sélection Automatique --')"><i class="fa-solid fa-wand-magic-sparkles mr-2"></i>-- Sélection Automatique --</div>`;
+            
+            let arrMs = arr && arr !== 'N/A' ? new Date(arr + 'Z').getTime() : Date.now();
+            let depMs = dep && dep !== 'N/A' && dep !== '' ? new Date(dep + 'Z').getTime() : Infinity;
+
             for (const [sId, lim] of Object.entries(AppConfig.stands)) {
-                const occ = parkedAircraft[sId], cond = isStandCondemned(sId), compat = item ? isCompatible(item, sId) : true;
+                const cond = isStandCondemned(sId), compat = item ? isCompatible(item, sId) : true;
+                const conflict = checkConflict(sId, arrMs, depMs);
+
                 let w = getWarningIfIncompatible(item, sId), a = ['A10','A11','A12','B1'].includes(sId) ? `<span class="text-amber-300 font-bold ml-2">[Départ autonome]</span>` : '';
                 let clickAction = '', statusText = '', rowCls = '';
-                if (occ) { statusText = 'Occupé'; rowCls = 'opacity-40 text-slate-400 cursor-not-allowed'; }
-                else if (cond) { statusText = 'Condamné'; rowCls = 'opacity-40 text-rose-300 cursor-not-allowed'; }
+                
+                if (cond) { statusText = 'Condamné'; rowCls = 'opacity-40 text-rose-300 cursor-not-allowed'; }
                 else if (!compat) { statusText = 'Incompatible'; rowCls = 'opacity-40 text-rose-300 cursor-not-allowed'; }
-                else { statusText = 'Libre'; rowCls = 'cursor-pointer hover:bg-slate-600 text-slate-100'; clickAction = `onclick="setStandAdd('${sId}', 'Poste ${sId}')"`; }
-                list.innerHTML += `<div class="px-4 py-3 text-xs font-mono flex justify-between ${rowCls} border-b border-slate-600" ${clickAction}><span>Poste <strong>${sId}</strong>${a}${w}</span><span class="${!compat || cond ? 'text-rose-300' : (occ ? 'text-slate-400' : 'text-emerald-300')}">${statusText}</span></div>`;
+                else if (conflict) { statusText = 'Créneau occupé'; rowCls = 'opacity-40 text-rose-300 cursor-not-allowed'; }
+                else { statusText = 'Libre (pour ce créneau)'; rowCls = 'cursor-pointer hover:bg-slate-600 text-slate-100'; clickAction = `onclick="setStandAdd('${sId}', 'Poste ${sId}')"`; }
+                
+                list.innerHTML += `<div class="px-4 py-3 text-xs font-mono flex justify-between ${rowCls} border-b border-slate-600" ${clickAction}><span>Poste <strong>${sId}</strong>${a}${w}</span><span class="${!compat || cond || conflict ? 'text-rose-300' : 'text-emerald-300'}">${statusText}</span></div>`;
             }
         }
 
         function setStandAdd(sId, lbl) {
             const code = $('ac-type').value.trim().toUpperCase(), item = AppConfig.aircrafts[code];
-            if (item && sId && (!isCompatible(item, sId) || isStandCondemned(sId))) return showToast("Poste indisponible ou incompatible", "error");
+            const arr = $('ac-arr').value, dep = $('ac-dep').value;
+            let arrMs = arr && arr !== 'N/A' ? new Date(arr + 'Z').getTime() : Date.now();
+            let depMs = dep && dep !== 'N/A' && dep !== '' ? new Date(dep + 'Z').getTime() : Infinity;
+            
+            if (item && sId && (!isCompatible(item, sId) || isStandCondemned(sId) || checkConflict(sId, arrMs, depMs))) return showToast("Poste indisponible, occupé ou incompatible", "error");
             $('ac-stand').value = sId; $('dropdown-add-lbl').textContent = lbl; $('dropdown-add').classList.add('hidden'); evalStandOptions(sId, item, 'add');
         }
 
@@ -1010,7 +1335,7 @@ function initApron() {
 
         function submitAircraft() {
             let type = $('ac-type').value.trim().toUpperCase(), reg = $('ac-reg').value.trim().toUpperCase() || `NO-REG`;
-            let arr = $('ac-arr').value || 'N/A', dep = $('ac-dep').value || 'N/A';
+            let arr = $('ac-arr').value || 'N/A', dep = $('ac-dep').value || '';
             let stand = $('ac-stand').value;
 
             if (reg !== 'NO-REG' && regDatabase[reg]) {
@@ -1018,24 +1343,50 @@ function initApron() {
                 if (type && type !== expectedType) { showToast(`Type corrigé via config (forcé: ${expectedType})`, "error"); type = expectedType; $('ac-type').value = expectedType; } else type = expectedType;
             }
             if (!type) return showToast("Code OACI requis", "error");
-            if (reg !== 'NO-REG' && isRegAlreadyParked(reg)) return showToast(`Immatriculation ${reg} déjà garée`, "error");
+
+            let arrMs = arr !== 'N/A' ? new Date(arr + 'Z').getTime() : Date.now();
+            let depMs = dep !== 'N/A' && dep !== '' ? new Date(dep + 'Z').getTime() : Infinity;
+            let isPlanned = arrMs > Date.now() + 60000;
+
+            if (isPlanned && depMs === Infinity) return showToast("Un vol prévu nécessite une heure de départ", "error");
+            if (depMs <= arrMs) return showToast("L'heure de départ doit être après l'arrivée", "error");
 
             const info = AppConfig.aircrafts[type] || { cat: 'avion', span: 99, length: 99, mtow: 0 };
             
             if (!stand) {
-                stand = Object.keys(AppConfig.stands).find(s => !parkedAircraft[s] && !isStandCondemned(s) && isCompatible(info, s));
-                if (!stand) return showToast("Aucun poste compatible libre", "error");
-            } else if (parkedAircraft[stand]) return showToast("Poste occupé", "error");
-            else if (isStandCondemned(stand)) return showToast("Poste condamné", "error");
-            else if (!isCompatible(info, stand)) return showToast("Aéronef incompatible", "error");
+                stand = Object.keys(AppConfig.stands).find(s => !isStandCondemned(s) && isCompatible(info, s) && checkConflict(s, arrMs, depMs) === null);
+                if (!stand) return showToast("Aucun poste libre pour ce créneau", "error");
+            } else {
+                if (isStandCondemned(stand)) return showToast("Poste condamné", "error");
+                if (!isCompatible(info, stand)) return showToast("Aéronef incompatible", "error");
+                const conflictError = checkConflict(stand, arrMs, depMs);
+                if (conflictError) return showToast(conflictError, "error");
+            }
+
+            if (!isPlanned && reg !== 'NO-REG' && isRegAlreadyParked(reg)) return showToast(`Immatriculation ${reg} déjà garée`, "error");
 
             let isAuto = ['A10', 'A11', 'A12', 'B1'].includes(stand);
             if (['A3', 'A5', 'A7', 'A9'].includes(stand) && isStandEligibleForAuto(stand, info)) isAuto = document.querySelector('input[name="add-auto"]:checked')?.value === 'true';
             let orientationO = ['D5', 'B2', 'B3'].includes(stand) ? (document.querySelector('input[name="add-d5-nose-container"] input[name="add-d5"]:checked')?.value || document.querySelector('input[name="add-b2b3d5"]:checked')?.value || 'Nose In') : null;
 
             registerImmat(reg, type);
-            parkedAircraft[stand] = { type, reg, category: info.cat, specs: info, arr, dep, autonomous: isAuto, d5Orientation: orientationO, comment: '' };
-            saveParked(); closeModal('modal-add'); updateApronDisplay(); showToast(`Garé en ${stand}`);
+            
+            const payload = { type, reg, category: info.cat, specs: info, arr, dep, autonomous: isAuto, d5Orientation: orientationO, comment: '' };
+            
+            if (isPlanned) {
+                payload.id = 'plan_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                if (!plannedAircraft[stand]) plannedAircraft[stand] = [];
+                plannedAircraft[stand].push(payload);
+                savePlanned();
+                showToast(`Vol prévu sur le poste ${stand}`, "success");
+                renderPlanning();
+            } else {
+                parkedAircraft[stand] = payload;
+                saveParked();
+                showToast(`Garé en direct en ${stand}`);
+            }
+            
+            closeModal('modal-add'); updateApronDisplay();
         }
 
         function clickStand(sId) {
@@ -1070,7 +1421,7 @@ function initApron() {
                 let constraintAlert = (stCfg && stCfg.constraint) ? `<div class="bg-amber-950/40 border border-amber-400/40 rounded-xl p-3 text-amber-300 text-xs flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i> <span><strong>Contrainte :</strong> ${stCfg.constraint}</span></div>` : '';
 
                 c.innerHTML = `
-                    <div class="bg-blue-950/50 border border-blue-500/40 rounded-xl p-4 flex justify-between items-center"><div class="font-bold text-blue-300 text-xs tracking-widest uppercase">Poste Occupé</div><div class="text-[10px] text-slate-300 font-mono">Max: ${standLimits.spanMax}m x ${standLimits.lengthMax}m / LHT: ${standLimits.lhtMax !== undefined ? standLimits.lhtMax : standLimits.lengthMax}m</div></div>
+                    <div class="bg-blue-950/50 border border-blue-500/40 rounded-xl p-4 flex justify-between items-center"><div class="font-bold text-blue-300 text-xs tracking-widest uppercase">Poste Occupé en direct</div><div class="text-[10px] text-slate-300 font-mono">Max: ${standLimits.spanMax}m x ${standLimits.lengthMax}m / LHT: ${standLimits.lhtMax !== undefined ? standLimits.lhtMax : standLimits.lengthMax}m</div></div>
                     ${constraintAlert}
                     <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-2"><label class="text-[10px] font-bold text-slate-300 uppercase block"><i class="fa-solid fa-exchange-alt text-amber-300 mr-1"></i> Changer de poste</label>${standOptionsHtml}</div>
                     <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-3 font-mono text-xs">
@@ -1095,7 +1446,7 @@ function initApron() {
                     </div>
                     <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-300 uppercase mb-1 block"><i class="fa-solid fa-comment-dots text-amber-300 mr-1"></i> Notification</label><textarea id="edit-comment" oninput="updateAc('${sId}')" rows="2" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs focus:border-amber-400 resize-none">${ac.comment || ''}</textarea></div>`;
                 
-                a.innerHTML = `<button onclick="openDepartModal('${sId}')" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center gap-2"><i class="fa-solid fa-plane-up"></i> Libérer</button><button onclick="updateAc('${sId}'); closeModal('modal-stand'); showToast('Modifications enregistrées');" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center gap-2"><i class="fa-solid fa-check"></i> Enregistrer & Fermer</button>`;
+                a.innerHTML = `<button onclick="openDepartModal('${sId}')" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center gap-2"><i class="fa-solid fa-plane-up"></i> Libérer</button><button onclick="closeModal('modal-stand'); showToast('Modifications conservées');" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center gap-2"><i class="fa-solid fa-check"></i> Enregistrer & Fermer</button>`;
             } else if (isCond) {
                 const sourceStands = currentCondemnedMap[sId] || [];
                 let constraintInfo = (stCfg && stCfg.constraint) ? `<div class="text-xs text-amber-300 font-mono bg-slate-900 p-3 rounded-lg border border-slate-700 mb-2">Contrainte : ${stCfg.constraint}</div>` : '';
@@ -1133,49 +1484,104 @@ function initApron() {
         function updateAc(sId) {
             if(!parkedAircraft[sId]) return;
             const newReg = $('edit-reg').value.trim().toUpperCase() || 'NO-REG';
+            const newArr = $('edit-arr').value || 'N/A';
+            const newDep = $('edit-dep').value || '';
+            
+            let arrMs = newArr !== 'N/A' ? new Date(newArr + 'Z').getTime() : Date.now();
+            let depMs = newDep !== 'N/A' && newDep !== '' ? new Date(newDep + 'Z').getTime() : Infinity;
+
+            const plans = plannedAircraft[sId] || [];
+            for (let p of plans) {
+                const pArr = new Date(p.arr + 'Z').getTime();
+                if (arrMs < new Date(p.dep + 'Z').getTime() && depMs > pArr) {
+                    showToast("Conflit avec un vol prévu. L'heure n'a pas été modifiée.", "error");
+                    $('edit-dep').value = parkedAircraft[sId].dep;
+                    $('edit-arr').value = parkedAircraft[sId].arr;
+                    return;
+                }
+            }
+
             if (newReg !== 'NO-REG' && newReg !== parkedAircraft[sId].reg) {
                 if (isRegAlreadyParked(newReg)) return showToast(`Immatriculation ${newReg} déjà utilisée`, "error");
                 if (regDatabase[newReg] && regDatabase[newReg] !== parkedAircraft[sId].type) showToast(`Type d'avion conservé : ${regDatabase[newReg]}`, "info");
             }
+
             parkedAircraft[sId].reg = newReg;
-            parkedAircraft[sId].arr = $('edit-arr').value || 'N/A';
-            parkedAircraft[sId].dep = $('edit-dep').value || 'N/A';
+            parkedAircraft[sId].arr = newArr;
+            parkedAircraft[sId].dep = newDep || 'N/A';
             parkedAircraft[sId].comment = $('edit-comment').value;
             const rAuto = document.querySelector('input[name="edit-auto"]:checked'); if (rAuto && !rAuto.disabled) parkedAircraft[sId].autonomous = rAuto.value === 'true';
             const rB2B3D5 = document.querySelector('input[name="edit-b2b3d5"]:checked'); if (rB2B3D5) parkedAircraft[sId].d5Orientation = rB2B3D5.value;
-            registerImmat(newReg, parkedAircraft[sId].type); saveParked(); updateApronDisplay();
+            registerImmat(newReg, parkedAircraft[sId].type); saveParked(); updateApronDisplay(); renderPlanning();
         }
 
         function changeAircraftStand(oldSId, newSId) {
             if (oldSId === newSId) return;
-            if (parkedAircraft[newSId] || isStandCondemned(newSId)) return showToast("Poste non disponible", "error");
             const ac = parkedAircraft[oldSId]; if (!ac) return;
+            
+            let arrMs = ac.arr !== 'N/A' ? new Date(ac.arr + 'Z').getTime() : Date.now();
+            let depMs = ac.dep !== 'N/A' && ac.dep !== '' ? new Date(ac.dep + 'Z').getTime() : Infinity;
+
+            if (parkedAircraft[newSId] || isStandCondemned(newSId)) return showToast("Poste non disponible", "error");
+            if (checkConflict(newSId, arrMs, depMs)) return showToast("Créneau en conflit sur le nouveau poste", "error");
+            
             const info = ac.specs || AppConfig.aircrafts[ac.type]; if (!isCompatible(info, newSId)) return showToast("Aéronef incompatible", "error");
+            
             if (['A3', 'A5', 'A7', 'A9'].includes(newSId) && !isStandEligibleForAuto(newSId, info)) ac.autonomous = false; else if (['A10', 'A11', 'A12', 'B1'].includes(newSId)) ac.autonomous = true;
             if (!['D5', 'B2', 'B3'].includes(newSId)) ac.d5Orientation = null; else if (!ac.d5Orientation) ac.d5Orientation = 'Nose In';
-            parkedAircraft[newSId] = ac; delete parkedAircraft[oldSId]; saveParked(); closeModal('modal-stand'); updateApronDisplay(); showToast(`Aéronef déplacé en ${newSId}`);
+            
+            parkedAircraft[newSId] = ac; delete parkedAircraft[oldSId]; saveParked(); closeModal('modal-stand'); updateApronDisplay(); renderPlanning(); showToast(`Aéronef déplacé en ${newSId}`);
         }
 
         function submitDirect(sId) {
             let type = $(`direct-input-${sId}`).value.trim().toUpperCase(), reg = $(`direct-reg-${sId}`).value.trim().toUpperCase() || 'NO-REG';
+            let arr = $(`direct-arr-${sId}`).value || 'N/A', dep = $(`direct-dep-${sId}`).value || '';
+
             if (reg !== 'NO-REG' && regDatabase[reg]) {
                 const expectedType = regDatabase[reg];
                 if (type && type !== expectedType) { showToast(`Type forcé : ${expectedType}`, "error"); type = expectedType; $(`direct-input-${sId}`).value = expectedType; } else type = expectedType;
             }
             if (!type) return showToast("Code OACI requis", "error");
+
+            let arrMs = arr !== 'N/A' ? new Date(arr + 'Z').getTime() : Date.now();
+            let depMs = dep !== 'N/A' && dep !== '' ? new Date(dep + 'Z').getTime() : Infinity;
+            let isPlanned = arrMs > Date.now() + 60000;
+
+            if (isPlanned && depMs === Infinity) return showToast("Un vol prévu nécessite une heure de départ", "error");
+            if (depMs <= arrMs) return showToast("L'heure de départ doit être après l'arrivée", "error");
+
             const info = AppConfig.aircrafts[type] || { cat: 'avion', span: 99, length: 99, mtow: 0 };
+            
             if (isStandCondemned(sId)) return showToast("Poste condamné", "error");
             if (!isCompatible(info, sId)) return showToast("Aéronef incompatible", "error");
-            if (reg !== 'NO-REG' && isRegAlreadyParked(reg)) return showToast(`Immatriculation ${reg} déjà garée`, "error");
+            const conflictError = checkConflict(sId, arrMs, depMs);
+            if (conflictError) return showToast(conflictError, "error");
+            
+            if (!isPlanned && reg !== 'NO-REG' && isRegAlreadyParked(reg)) return showToast(`Immatriculation ${reg} déjà garée`, "error");
 
-            let arr = $(`direct-arr-${sId}`).value || 'N/A', dep = $(`direct-dep-${sId}`).value || 'N/A', comment = $(`direct-comment-${sId}`).value || '';
-
+            let comment = $(`direct-comment-${sId}`).value || '';
             let isAuto = ['A10', 'A11', 'A12', 'B1'].includes(sId);
             if (['A3', 'A5', 'A7', 'A9'].includes(sId) && isStandEligibleForAuto(sId, info)) isAuto = document.querySelector(`input[name="dir-${sId}-auto"]:checked`)?.value === 'true';
             let orientationO = ['D5', 'B2', 'B3'].includes(sId) ? (document.querySelector(`input[name="dir-${sId}-b2b3d5"]:checked`)?.value || 'Nose In') : null;
             
-            registerImmat(reg, type); parkedAircraft[sId] = { type, reg, category: info.cat, specs: info, arr, dep, autonomous: isAuto, d5Orientation: orientationO, comment };
-            saveParked(); closeModal('modal-stand'); updateApronDisplay(); showToast(`Garé en ${sId}`);
+            registerImmat(reg, type); 
+            
+            const payload = { type, reg, category: info.cat, specs: info, arr, dep, autonomous: isAuto, d5Orientation: orientationO, comment };
+            
+            if (isPlanned) {
+                payload.id = 'plan_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                if (!plannedAircraft[sId]) plannedAircraft[sId] = [];
+                plannedAircraft[sId].push(payload);
+                savePlanned();
+                showToast(`Vol prévu programmé sur le poste ${sId}`, "success");
+                renderPlanning();
+            } else {
+                parkedAircraft[sId] = payload;
+                saveParked();
+                showToast(`Garé en direct en ${sId}`);
+            }
+            
+            closeModal('modal-stand'); updateApronDisplay();
         }
 
         function openDepartModal(sId) {
@@ -1188,10 +1594,10 @@ function initApron() {
         function confirmDepartAc() {
             const sId = $('depart-stand-target').value, ac = parkedAircraft[sId]; if (!ac) return;
             aircraftHistory.push({ ...ac, stand: sId, actualDeparture: $('depart-time-input').value || getUtcDateString() });
-            saveHistory(); delete parkedAircraft[sId]; clearHighlights(); saveParked(); closeModal('modal-depart'); closeModal('modal-stand'); updateApronDisplay(); showToast(`Poste ${sId} libéré et archivé`);
+            saveHistory(); delete parkedAircraft[sId]; clearHighlights(); saveParked(); closeModal('modal-depart'); closeModal('modal-stand'); updateApronDisplay(); renderPlanning(); showToast(`Poste ${sId} libéré et archivé`);
         }
 
-        function resetApron() { if(confirm("Vider le tarmac ?")) { parkedAircraft={}; clearHighlights(); saveParked(); updateApronDisplay(); showToast("Tarmac réinitialisé"); } }
+        function resetApron() { if(confirm("Vider le tarmac ?")) { parkedAircraft={}; clearHighlights(); saveParked(); updateApronDisplay(); renderPlanning(); showToast("Tarmac réinitialisé"); } }
 
         function renderPushResult(code) {
             const item = AppConfig.aircrafts[code], c = $('push-result-container');
@@ -1356,121 +1762,6 @@ function initApron() {
             t.innerHTML = `<i class="fa-solid fa-${type==='success'?'check':type==='info'?'circle-info':'circle-exclamation'}"></i> ${msg}`;
             c.appendChild(t); setTimeout(() => { t.style.opacity = '0'; setTimeout(()=>t.remove(), 200); }, 3000);
         }
-
-        // --- CONFIGURATION GITHUB CLOUD ---
-        const GITHUB_USER = "maxencemolin26953-gif";
-        const GITHUB_REPO = "Aeropark-GNB";
-        const GITHUB_FILE_PATH = "Aeropark_data.json";
-        const getGitHubToken = () => localStorage.getItem('github_token') || "";
-
-        const githubApiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
-
-        async function loadAeroparkDataFromGitHub(isSilent = false) {
-    try {
-        const response = await fetch(githubApiUrl, {
-            headers: { "Authorization": `token ${getGitHubToken()}` },
-            cache: "no-store"
-        });
-        if (!response.ok) throw new Error("Erreur de chargement réseau");
-        
-        const fileMeta = await response.json();
-        // Décodage UTF-8 robuste du contenu distant
-        const remoteData = JSON.parse(decodeURIComponent(escape(atob(fileMeta.content.replace(/\s/g, "")))));
-        
-        // Injection prioritaire des données distantes dans l'application
-        if (remoteData.AppConfig) {
-            AppConfig = remoteData.AppConfig;
-            localStorage.setItem('AppConfig', JSON.stringify(AppConfig));
-        }
-        if (remoteData.regDatabase) {
-            regDatabase = remoteData.regDatabase;
-            localStorage.setItem('regDatabase', JSON.stringify(regDatabase));
-        }
-        if (remoteData.parkedAircraft) {
-            parkedAircraft = remoteData.parkedAircraft;
-            localStorage.setItem('parkedAircraft', JSON.stringify(parkedAircraft));
-        }
-        if (remoteData.aircraftHistory) {
-            aircraftHistory = remoteData.aircraftHistory;
-            localStorage.setItem('aircraftHistory', JSON.stringify(aircraftHistory));
-        }
-        
-        // Mise à jour immédiate de l'affichage
-        updateCondemnedMap();
-        initApron();
-        updateApronDisplay();
-
-        if (!isSilent) {
-            updateTZUI();
-            switchTab('sidebar', 'aircraft');
-            setDefaultDates();
-        }
-    } catch (error) {
-        console.warn("Synchro ignorée ou mode hors-ligne, utilisation du cache local", error);
-    }
-}
-
-        async function saveToGitHub() {
-            const dataToSend = {
-                AppConfig: AppConfig,
-                regDatabase: regDatabase,
-                parkedAircraft: parkedAircraft,
-                aircraftHistory: aircraftHistory
-            };
-
-            try {
-                const getRes = await fetch(githubApiUrl, {
-                    headers: { "Authorization": `token ${getGitHubToken()}` },
-                    cache: "no-store"
-                });
-                if (!getRes.ok) throw new Error("Impossible de récupérer le fichier GitHub");
-                const fileMeta = await getRes.json();
-                
-                const contentEncoded = btoa(unescape(encodeURIComponent(JSON.stringify(dataToSend, null, 2))));
-                
-                await fetch(githubApiUrl, {
-                    method: "PUT",
-                    headers: {
-                        "Authorization": `token ${getGitHubToken()}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        message: "Mise à jour automatique AéroPark",
-                        content: contentEncoded,
-                        sha: fileMeta.sha
-                    })
-                });
-            } catch (error) {
-                console.error("Erreur lors de la synchronisation cloud GitHub :", error);
-            }
-        }
-
-        // --- CORRECTION DU CHARGEMENT INITIAL (DOMContentLoaded unique et robuste) ---
-        // --- CORRECTION DU CHARGEMENT INITIAL (DOMContentLoaded unique et robuste) ---
-        document.addEventListener('DOMContentLoaded', async () => {
-            updateTZUI();
-            updateCondemnedMap();
-
-            // 1. On télécharge d'abord les données distantes depuis GitHub
-            await loadAeroparkDataFromGitHub();
-
-            // 2. Ensuite seulement, on dessine le tarmac et l'interface
-            initApron();
-            switchTab('sidebar', 'aircraft');
-            updateApronDisplay();
-            setDefaultDates();
-
-            // 3. Lance la récupération des données distantes en arrière-plan
-            loadAeroparkDataFromGitHub();
-
-            // 4. Synchronisation en direct toutes les 10 secondes
-            setInterval(() => {
-                const isModalOpen = !document.getElementById('modal-overlay').classList.contains('hidden');
-                if (!isModalOpen) {
-                    loadAeroparkDataFromGitHub(true); // Chargement silencieux en arrière-plan
-                }
-            }, 10000);
-        });
     </script>
 </body>
 </html>
