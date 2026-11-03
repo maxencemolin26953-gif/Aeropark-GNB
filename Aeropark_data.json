@@ -5218,53 +5218,7 @@
     "FHYKE": "PC12",
     "F-HSTR": "DA40"
   },
-  "parkedAircraft": {
-    "A3": {
-      "type": "GL7T",
-      "reg": "NO-REG",
-      "category": "avion",
-      "specs": {
-        "cat": "avion",
-        "span": 31.79,
-        "length": 33.71,
-        "mtow": 48.2,
-        "mototok": "Non renseigné",
-        "gpu": "Non renseigné",
-        "lektro": "NIL",
-        "hydro": "N/A",
-        "parts": "",
-        "incompatiblePush": []
-      },
-      "arr": "2026-11-03T13:34",
-      "dep": "2026-11-03T18:00",
-      "autonomous": false,
-      "d5Orientation": null,
-      "comment": ""
-    },
-    "A6": {
-      "type": "A109",
-      "reg": "NO-REG",
-      "category": "helico",
-      "specs": {
-        "cat": "helico",
-        "span": 11,
-        "length": 13,
-        "mtow": 2.8,
-        "mototok": "Non renseigné",
-        "gpu": "Non renseigné",
-        "hydro": "N/A",
-        "parts": "",
-        "gear": "roues",
-        "incompatiblePush": []
-      },
-      "arr": "2026-11-03T13:35",
-      "dep": "2026-11-05T13:17",
-      "autonomous": false,
-      "d5Orientation": null,
-      "comment": "",
-      "id": "plan_1793711841899_p5dur"
-    }
-  },
+  "parkedAircraft": {},
   "aircraftHistory": [],
   "plannedAircraft": {
     "A6": [],
