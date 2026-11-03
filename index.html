@@ -424,9 +424,13 @@
 
         async function loadDataFromGitHub() {
             try {
+                let token = localStorage.getItem('aeropark_gh_token');
+                let headers = { 'Accept': 'application/vnd.github.v3+json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+
                 const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`, {
                     cache: 'no-store',
-                    headers: { 'Accept': 'application/vnd.github.v3+json' }
+                    headers: headers
                 });
                 
                 if (response.status === 404) {
@@ -441,11 +445,11 @@
                 const jsonString = decodeURIComponent(escape(window.atob(fileData.content.replace(/\s/g, ''))));
                 const parsed = JSON.parse(jsonString);
 
-                AppConfig = parsed.aeropark_config || defaultConfig;
-                regDatabase = parsed.aeropark_regs || {};
-                parkedAircraft = parsed.aeropark_parked || {};
-                aircraftHistory = parsed.aeropark_history || [];
-                plannedAircraft = parsed.aeropark_planned || {};
+                AppConfig = parsed.AppConfig || defaultConfig;
+                regDatabase = parsed.regDatabase || {};
+                parkedAircraft = parsed.parkedAircraft || {};
+                aircraftHistory = parsed.aircraftHistory || [];
+                plannedAircraft = parsed.plannedAircraft || {};
             } catch (e) {
                 console.warn("Chargement distant échoué, utilisation des données locales de repli.", e);
                 AppConfig = JSON.parse(localStorage.getItem('aeropark_config')) || defaultConfig;
@@ -473,11 +477,11 @@
             }
 
             const dataObject = {
-                aeropark_config: AppConfig,
-                aeropark_regs: regDatabase,
-                aeropark_parked: parkedAircraft,
-                aeropark_history: aircraftHistory,
-                aeropark_planned: plannedAircraft
+                AppConfig: AppConfig,
+                regDatabase: regDatabase,
+                parkedAircraft: parkedAircraft,
+                aircraftHistory: aircraftHistory,
+                plannedAircraft: plannedAircraft
             };
 
             const jsonStr = JSON.stringify(dataObject, null, 2);
@@ -571,19 +575,23 @@
             await loadDataFromGitHub();
             setInterval(async () => {
                 try {
+                    let token = localStorage.getItem('aeropark_gh_token');
+                    let headers = { 'Accept': 'application/vnd.github.v3+json' };
+                    if (token) headers['Authorization'] = `Bearer ${token}`;
+
                     const response = await fetch(`https://api.github.com/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`, {
                         cache: 'no-store',
-                        headers: { 'Accept': 'application/vnd.github.v3+json' }
+                        headers: headers
                     });
                     if (response.ok) {
                         const fileData = await response.json();
                         const jsonString = decodeURIComponent(escape(window.atob(fileData.content.replace(/\s/g, ''))));
                         const parsed = JSON.parse(jsonString);
                         
-                        if (JSON.stringify(parkedAircraft) !== JSON.stringify(parsed.aeropark_parked) ||
-                            JSON.stringify(plannedAircraft) !== JSON.stringify(parsed.aeropark_planned)) {
-                            parkedAircraft = parsed.aeropark_parked || {};
-                            plannedAircraft = parsed.aeropark_planned || {};
+                        if (JSON.stringify(parkedAircraft) !== JSON.stringify(parsed.parkedAircraft) ||
+                            JSON.stringify(plannedAircraft) !== JSON.stringify(parsed.plannedAircraft)) {
+                            parkedAircraft = parsed.parkedAircraft || {};
+                            plannedAircraft = parsed.plannedAircraft || {};
                             updateCondemnedMap();
                             updateApronDisplay();
                             if (currentView === 'plan') renderPlanning();
@@ -1027,7 +1035,7 @@
         }
 
         function exportStandaloneApp() {
-            const dataToExport = { aeropark_config: AppConfig, aeropark_parked: parkedAircraft, aeropark_planned: plannedAircraft, aeropark_history: aircraftHistory, aeropark_regs: regDatabase };
+            const dataToExport = { AppConfig: AppConfig, parkedAircraft: parkedAircraft, plannedAircraft: plannedAircraft, aircraftHistory: aircraftHistory, regDatabase: regDatabase };
             const dataStr = encodeURIComponent(JSON.stringify(dataToExport));
             const docClone = document.documentElement.cloneNode(true);
             
@@ -1039,7 +1047,11 @@
                 (function(){
                     try {
                         const data = JSON.parse(decodeURIComponent('${dataStr}'));
-                        for (let k in data) { localStorage.setItem(k, JSON.stringify(data[k])); }
+                        localStorage.setItem('aeropark_config', JSON.stringify(data.AppConfig));
+                        localStorage.setItem('aeropark_parked', JSON.stringify(data.parkedAircraft));
+                        localStorage.setItem('aeropark_planned', JSON.stringify(data.plannedAircraft));
+                        localStorage.setItem('aeropark_history', JSON.stringify(data.aircraftHistory));
+                        localStorage.setItem('aeropark_regs', JSON.stringify(data.regDatabase));
                     } catch(e) { console.error("Restore failed", e); }
                 })();
             <\/script>`;
