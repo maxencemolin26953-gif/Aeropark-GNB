@@ -5217,7 +5217,8 @@
     "F-GNSN": "BE58",
     "FHYKE": "PC12",
     "F-HSTR": "DA40",
-    "CS-PHI": "E55P"
+    "CS-PHI": "E55P",
+    "PH-DWP": "E135"
   },
   "parkedAircraft": {},
   "aircraftHistory": [],
@@ -5247,6 +5248,31 @@
         "d5Orientation": null,
         "comment": "",
         "id": "plan_1793713672113_w9x5a"
+      }
+    ],
+    "B1": [
+      {
+        "type": "E135",
+        "reg": "PH-DWP",
+        "category": "avion",
+        "specs": {
+          "cat": "avion",
+          "span": 20.06,
+          "length": 28.47,
+          "mtow": 20.2,
+          "mototok": "Non renseigné",
+          "gpu": "Non renseigné",
+          "lektro": "NIL",
+          "hydro": "N/A",
+          "parts": "",
+          "incompatiblePush": []
+        },
+        "arr": "2026-11-06T10:30",
+        "dep": "2026-11-06T23:15",
+        "autonomous": true,
+        "d5Orientation": null,
+        "comment": "",
+        "id": "plan_1793713767616_1kcp5"
       }
     ]
   }
