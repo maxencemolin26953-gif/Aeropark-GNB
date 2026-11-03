@@ -5218,6 +5218,29 @@
     "FHYKE": "PC12",
     "F-HSTR": "DA40"
   },
-  "parkedAircraft": {},
+  "parkedAircraft": {
+    "A10": {
+      "type": "LJ55",
+      "reg": "D-CGBR",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 13.35,
+        "length": 16.79,
+        "mtow": 8.8,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "lektro": "NIL",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": []
+      },
+      "arr": "2026-11-03T06:05",
+      "dep": "N/A",
+      "autonomous": true,
+      "d5Orientation": null,
+      "comment": ""
+    }
+  },
   "aircraftHistory": []
 }
