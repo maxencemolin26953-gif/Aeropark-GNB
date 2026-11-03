@@ -5248,5 +5248,31 @@
       "actualDeparture": "2026-11-03T02:32"
     }
   ],
-  "plannedAircraft": {}
+  "plannedAircraft": {
+    "A6": [
+      {
+        "type": "A109",
+        "reg": "NO-REG",
+        "category": "helico",
+        "specs": {
+          "cat": "helico",
+          "span": 11,
+          "length": 13,
+          "mtow": 2.8,
+          "mototok": "Non renseigné",
+          "gpu": "Non renseigné",
+          "hydro": "N/A",
+          "parts": "",
+          "gear": "roues",
+          "incompatiblePush": []
+        },
+        "arr": "2026-11-04T13:17",
+        "dep": "2026-11-05T13:17",
+        "autonomous": false,
+        "d5Orientation": null,
+        "comment": "",
+        "id": "plan_1793711841899_p5dur"
+      }
+    ]
+  }
 }
