@@ -54,6 +54,23 @@
         #custom-tooltip { position: fixed; display: none; pointer-events: none; z-index: 9999; }
         .fade-in { animation: fadeIn 0.2s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+        /* Styles Spécifiques Gantt Prévisionnel */
+        .gantt-container { display: flex; flex-direction: column; overflow-y: auto; overflow-x: auto; height: 100%; width: 100%; background: #0b0f19; position: relative;}
+        .gantt-inner { position: relative; min-height: 100%; }
+        .gantt-row { display: flex; position: relative; border-bottom: 1px solid #1e293b; height: 65px; transition: background-color 0.2s; }
+        .gantt-stand { width: 110px; flex-shrink: 0; background: #0f172a; border-right: 1px solid #334155; position: sticky; left: 0; z-index: 10; display: flex; align-items: center; justify-content: center; font-weight: bold; font-family: 'JetBrains Mono', monospace; font-size: 16px; color: #fbbf24; box-shadow: 2px 0 5px rgba(0,0,0,0.2);}
+        .gantt-timeline { flex: 1; position: relative; overflow: hidden; cursor: pointer; }
+        .gantt-timeline:hover { background-color: rgba(255,255,255,0.02); }
+        .gantt-block { position: absolute; top: 12px; height: 40px; background: #2563eb; border-radius: 6px; color: white; padding: 4px 8px; font-size: 11px; overflow: hidden; white-space: nowrap; cursor: pointer; z-index: 5; border: 1px solid #60a5fa; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3); transition: filter 0.1s, transform 0.1s;}
+        .gantt-block:hover { filter: brightness(1.2); transform: scale(1.02); z-index: 6;}
+        .gantt-current-time { position: absolute; top: 0; bottom: 0; width: 2px; background: #ef4444; z-index: 20; pointer-events: none; box-shadow: 0 0 10px #ef4444;}
+        .gantt-grid-line { position: absolute; top: 0; bottom: 0; border-left: 1px dashed #1e293b; pointer-events: none; }
+        .gantt-grid-line-major { position: absolute; top: 0; bottom: 0; border-left: 1px solid #334155; pointer-events: none; }
+        .gantt-header { display: flex; position: sticky; top: 0; background: #0f172a; z-index: 15; border-bottom: 1px solid #334155; height: 35px; font-size: 10px; color: #94a3b8; font-family: 'JetBrains Mono', monospace;}
+        .gantt-header-label { position: absolute; transform: translateX(-50%); top: 10px; font-weight: bold; color: #cbd5e1; }
+        .stand-compat-ok { background-color: rgba(16, 185, 129, 0.15) !important; }
+        .stand-compat-ko { background-color: rgba(225, 29, 72, 0.15) !important; }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden selection:bg-amber-500/30">
@@ -79,11 +96,19 @@
                 <p class="text-[11px] text-slate-300 font-medium">Gestion de l'aire de trafic (Heure locale : <span class="tz-label font-bold text-white">UTC+1</span>)</p>
             </div>
         </div>
-        
-        <div class="hidden md:flex items-center gap-6 bg-slate-900/70 px-5 py-2 rounded-xl border border-slate-700 font-mono text-xs shadow-inner">
-            <div class="flex items-center gap-2"><span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span></span><span class="text-slate-300">Libres:</span><span id="stat-free" class="text-emerald-400 font-bold">0</span></div><div class="w-px h-4 bg-slate-600"></div>
-            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-blue-400"></span><span class="text-slate-300">Occupés:</span><span id="stat-occupied" class="text-blue-300 font-bold">0</span></div><div class="w-px h-4 bg-slate-600"></div>
-            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span><span class="text-slate-300">Condamnés:</span><span id="stat-condemned" class="text-rose-300 font-bold">0</span></div>
+
+        <div class="flex items-center gap-4">
+            <!-- Onglets principaux -->
+            <div class="bg-slate-900 border border-slate-700 p-1 rounded-xl flex gap-1 shadow-inner font-mono text-xs">
+                <button id="btn-view-tarmac" onclick="switchMainView('tarmac')" class="px-4 py-1.5 rounded-lg bg-amber-400 text-slate-950 font-bold shadow transition-all"><i class="fa-solid fa-map-location-dot mr-1"></i> TARMAC RÉEL</button>
+                <button id="btn-view-forecast" onclick="switchMainView('forecast')" class="px-4 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 transition-all font-bold"><i class="fa-solid fa-calendar-days mr-1"></i> PRÉVISIONNEL</button>
+            </div>
+            
+            <div class="hidden md:flex items-center gap-6 bg-slate-900/70 px-5 py-2 rounded-xl border border-slate-700 font-mono text-xs shadow-inner ml-2">
+                <div class="flex items-center gap-2"><span class="relative flex h-2.5 w-2.5"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400"></span></span><span class="text-slate-300">Libres:</span><span id="stat-free" class="text-emerald-400 font-bold">0</span></div><div class="w-px h-4 bg-slate-600"></div>
+                <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-blue-400"></span><span class="text-slate-300">Occupés:</span><span id="stat-occupied" class="text-blue-300 font-bold">0</span></div><div class="w-px h-4 bg-slate-600"></div>
+                <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span><span class="text-slate-300">Condamnés:</span><span id="stat-condemned" class="text-rose-300 font-bold">0</span></div>
+            </div>
         </div>
 
         <div class="flex items-center gap-3">
@@ -95,7 +120,8 @@
     </header>
 
     <div class="flex-1 flex overflow-hidden">
-        <aside class="w-96 bg-slate-800 border-r border-slate-700 flex flex-col z-10 shadow-2xl relative shrink-0">
+        <!-- Sidebar existante (pour le Tarmac) -->
+        <aside id="sidebar-tarmac" class="w-96 bg-slate-800 border-r border-slate-700 flex flex-col z-10 shadow-2xl relative shrink-0">
             <div class="p-4 border-b border-slate-700 bg-slate-800/80 backdrop-blur shrink-0">
                 <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-700 text-[11px] font-bold">
                     <button onclick="switchTab('sidebar', 'parkings')" id="tab-sidebar-parkings" class="flex-1 py-2 rounded-lg text-slate-300 hover:text-white transition-all">POSTES (<span id="count-active">0</span>)</button>
@@ -128,7 +154,8 @@
             </div>
         </aside>
 
-        <main class="flex-1 tarmac-bg relative flex items-center justify-center p-6 overflow-hidden">
+        <!-- Vue Tarmac (Défaut) -->
+        <main id="view-tarmac" class="flex-1 tarmac-bg relative flex items-center justify-center p-6 overflow-hidden">
             <div class="w-full h-full max-w-[1400px] bg-[#3e4654] rounded-3xl shadow-2xl border border-slate-600/70 relative overflow-hidden flex items-center justify-center">
                 <svg viewBox="0 0 1750 900" preserveAspectRatio="xMidYMid meet" class="w-full h-full drop-shadow-xl" xmlns="http://www.w3.org/2000/svg">
                     <g transform="translate(30, 0)">
@@ -146,8 +173,91 @@
                 <button onclick="resetApron()" class="absolute bottom-5 right-5 bg-slate-800 hover:bg-rose-950 text-slate-200 hover:text-rose-300 border border-slate-600 hover:border-rose-800 px-4 py-2 rounded-xl text-[11px] font-mono font-bold transition-colors flex items-center gap-2 shadow-lg"><i class="fa-solid fa-trash-can"></i> Reset</button>
             </div>
         </main>
+
+        <!-- Nouvelle Vue Prévisionnel (Gantt) -->
+        <main id="view-forecast" class="flex-1 bg-slate-900 hidden flex-col w-full relative">
+            <div class="bg-slate-800 border-b border-slate-700 p-4 flex items-center justify-between shrink-0 shadow z-20">
+                <div class="flex items-center gap-4 font-mono">
+                    <div class="flex items-center bg-slate-900 border border-slate-700 rounded-lg p-1 text-xs">
+                        <button id="btn-scale-day" onclick="setForecastScale('day')" class="px-3 py-1.5 rounded bg-amber-400 text-slate-900 font-bold shadow transition">Jour</button>
+                        <button id="btn-scale-week" onclick="setForecastScale('week')" class="px-3 py-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-800 transition">Semaine</button>
+                        <button id="btn-scale-month" onclick="setForecastScale('month')" class="px-3 py-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-800 transition">Mois</button>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="relative font-mono text-xs w-80">
+                        <i class="fa-solid fa-search absolute left-3 top-2.5 text-slate-400"></i>
+                        <input type="text" id="forecast-search-compat" oninput="renderForecast()" placeholder="Code OACI (vérif compatibilité)..." class="w-full bg-slate-900 border border-slate-600 rounded-lg pl-9 pr-3 py-2 text-white uppercase focus:border-amber-400 transition">
+                    </div>
+                    <button onclick="renderForecast()" class="text-slate-400 hover:text-amber-300 p-2"><i class="fa-solid fa-rotate-right"></i></button>
+                </div>
+            </div>
+            
+            <div class="gantt-container custom-scrollbar" id="forecast-scroll-container">
+                <div class="gantt-inner" id="forecast-grid">
+                    <!-- Généré en JS -->
+                </div>
+            </div>
+        </main>
     </div>
 
+    <!-- Modale Ajout/Edition Prévisionnel -->
+    <div id="modal-forecast-edit" class="fixed inset-0 z-[60] hidden items-center justify-center p-4 sm:p-6 overflow-visible">
+        <div class="bg-slate-800 border border-slate-600 rounded-2xl w-full max-w-lg shadow-2xl flex flex-col fade-in relative my-8 overflow-visible text-slate-100">
+            <div class="p-5 border-b border-slate-700 flex items-center justify-between shrink-0 relative z-20 bg-slate-800 rounded-t-2xl">
+                <h3 class="font-bold text-lg text-white flex items-center gap-2" id="fc-modal-title"><i class="fa-solid fa-calendar-plus text-amber-400"></i> Prévisionnel</h3>
+                <button onclick="closeModal('modal-forecast-edit')" class="text-slate-300 hover:text-white p-1 transition"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            
+            <div class="p-6 space-y-4 flex-1 overflow-visible relative z-10">
+                <input type="hidden" id="fc-id">
+                
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Poste Assigné</label>
+                        <input type="text" id="fc-stand" readonly class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 font-bold text-amber-300 font-mono text-xs cursor-not-allowed">
+                    </div>
+                    <div class="relative overflow-visible">
+                        <label class="block text-[10px] font-bold uppercase text-slate-300 mb-1">Type OACI</label>
+                        <input type="text" id="fc-type" oninput="handleSearch('forecast', this.value)" autocomplete="off" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 font-mono text-xs uppercase text-white focus:border-amber-400">
+                        <div id="auto-direct-forecast" class="hidden absolute left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-xl shadow-2xl z-[100] max-h-48 overflow-y-auto custom-scrollbar"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-bold uppercase text-slate-300 mb-1">Immatriculation (Optionnel)</label>
+                    <input type="text" id="fc-reg" autocomplete="off" placeholder="Ex: F-GABC" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 font-mono text-xs uppercase text-white focus:border-amber-400">
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-300 mb-1">Arrivée Prévue UTC</label>
+                        <input type="datetime-local" id="fc-arr" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 font-mono text-xs text-white focus:border-amber-400">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold uppercase text-slate-300 mb-1">Départ Prévu UTC</label>
+                        <input type="datetime-local" id="fc-dep" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2.5 font-mono text-xs text-white focus:border-amber-400">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-[10px] font-bold uppercase text-slate-300 mb-1"><i class="fa-solid fa-comment-dots text-amber-300 mr-1"></i> Commentaire Libre</label>
+                    <textarea id="fc-comment" rows="2" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2 font-mono text-xs text-white focus:border-amber-400 resize-none"></textarea>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-slate-700 bg-slate-800 flex justify-between items-center rounded-b-2xl shrink-0 z-0">
+                <button id="btn-fc-delete" onclick="deleteForecast()" class="px-4 py-2.5 rounded-xl bg-rose-900/60 hover:bg-rose-600 text-rose-200 hover:text-white font-bold text-xs border border-rose-700 transition hidden"><i class="fa-solid fa-trash-can mr-1"></i> Supprimer</button>
+                <div class="flex gap-2 ml-auto">
+                    <button onclick="closeModal('modal-forecast-edit')" class="px-4 py-2.5 rounded-xl bg-slate-700 text-slate-200 font-bold text-xs hover:bg-slate-600">Annuler</button>
+                    <button onclick="saveForecast()" class="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-lg transition"><i class="fa-solid fa-floppy-disk mr-1"></i> Enregistrer</button>
+                    <button id="btn-fc-transfer" onclick="transferForecast()" class="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg transition hidden"><i class="fa-solid fa-plane-arrival mr-1"></i> Valider dans Réel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modales Existantes... -->
     <div id="modal-overlay" class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm z-40 hidden transition-opacity"></div>
 
     <div id="modal-lock" class="fixed inset-0 z-[80] hidden items-center justify-center p-4 sm:p-6">
@@ -227,7 +337,7 @@
 
                 <div class="relative overflow-visible">
                     <label class="block text-[10px] font-bold uppercase text-slate-300 mb-1">Assignation du Poste</label><input type="hidden" id="ac-stand" value="">
-                    <button type="button" onclick="$('dropdown-add').classList.toggle('hidden');" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 font-mono text-xs text-left flex justify-between items-center text-white hover:border-amber-400 transition"><span id="dropdown-add-lbl">-- Sélection Automatique --</span><i class="fa-solid fa-chevron-down text-slate-400"></i></button>
+                    <button type="button" onclick="document.getElementById('dropdown-add').classList.toggle('hidden');" class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 font-mono text-xs text-left flex justify-between items-center text-white hover:border-amber-400 transition"><span id="dropdown-add-lbl">-- Sélection Automatique --</span><i class="fa-solid fa-chevron-down text-slate-400"></i></button>
                     <div id="dropdown-add" class="hidden absolute left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-xl shadow-2xl z-[100] max-h-[30vh] overflow-y-auto custom-scrollbar"></div>
                 </div>
             </div>
@@ -340,9 +450,263 @@
         let regDatabase = JSON.parse(localStorage.getItem('regDatabase')) || {};
         let parkedAircraft = JSON.parse(localStorage.getItem('parkedAircraft')) || {};
         let aircraftHistory = JSON.parse(localStorage.getItem('aircraftHistory')) || [];
+        let forecastAircraft = JSON.parse(localStorage.getItem('forecastAircraft')) || [];
         
         if (!AppConfig.timezone) AppConfig.timezone = 'UTC+1';
 
+        // --- Logique Vues Tarmac/Prévisionnel ---
+        let currentMainView = 'tarmac';
+        let forecastScale = 'day'; // day, week, month
+        let forecastInterval = null;
+
+        function switchMainView(view) {
+            currentMainView = view;
+            if (view === 'tarmac') {
+                $('view-tarmac').classList.remove('hidden');
+                $('sidebar-tarmac').classList.remove('hidden');
+                $('view-forecast').classList.add('hidden');
+                $('view-forecast').classList.remove('flex');
+                
+                $('btn-view-tarmac').className = "px-4 py-1.5 rounded-lg bg-amber-400 text-slate-950 font-bold shadow transition-all";
+                $('btn-view-forecast').className = "px-4 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 font-bold transition-all";
+                
+                if (forecastInterval) clearInterval(forecastInterval);
+                updateApronDisplay();
+            } else {
+                $('view-tarmac').classList.add('hidden');
+                $('sidebar-tarmac').classList.add('hidden');
+                $('view-forecast').classList.remove('hidden');
+                $('view-forecast').classList.add('flex');
+                
+                $('btn-view-forecast').className = "px-4 py-1.5 rounded-lg bg-amber-400 text-slate-950 font-bold shadow transition-all";
+                $('btn-view-tarmac').className = "px-4 py-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 font-bold transition-all";
+                
+                renderForecast();
+                forecastInterval = setInterval(renderForecast, 60000); // refresh 1 minute pour la ligne rouge
+            }
+        }
+
+        function setForecastScale(scale) {
+            forecastScale = scale;
+            const scales = ['day', 'week', 'month'];
+            scales.forEach(s => {
+                const btn = $(`btn-scale-${s}`);
+                if (s === scale) {
+                    btn.className = "px-3 py-1.5 rounded bg-amber-400 text-slate-900 font-bold shadow transition";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded text-slate-300 hover:text-white hover:bg-slate-800 transition";
+                }
+            });
+            renderForecast();
+        }
+
+        function renderForecast() {
+            if (currentMainView !== 'forecast') return;
+            
+            const searchType = $('forecast-search-compat').value.trim().toUpperCase();
+            const typeInfo = AppConfig.aircrafts[searchType];
+
+            const now = new Date();
+            let start, end, totalWidthPx;
+            
+            if (forecastScale === 'day') {
+                start = new Date(now.getTime() - 12 * 3600 * 1000);
+                end = new Date(now.getTime() + 24 * 3600 * 1000);
+                totalWidthPx = 2400; 
+            } else if (forecastScale === 'week') {
+                start = new Date(now.getTime() - 2 * 24 * 3600 * 1000);
+                end = new Date(now.getTime() + 7 * 24 * 3600 * 1000);
+                totalWidthPx = 3000;
+            } else {
+                start = new Date(now.getTime() - 5 * 24 * 3600 * 1000);
+                end = new Date(now.getTime() + 25 * 24 * 3600 * 1000);
+                totalWidthPx = 4000;
+            }
+
+            const totalMs = end.getTime() - start.getTime();
+            const container = $('forecast-grid');
+            container.style.width = totalWidthPx + 'px';
+            container.innerHTML = '';
+
+            // Ligne temporelle (axe X)
+            let headerHtml = `<div class="gantt-header"><div style="width:110px; flex-shrink:0;"></div><div class="gantt-timeline">`;
+            const stepMs = forecastScale === 'day' ? 3600*1000 * 2 : forecastScale === 'week' ? 24*3600*1000 : 24*3600*1000 * 2;
+            
+            for(let t = start.getTime(); t <= end.getTime(); t += stepMs) {
+                const pct = ((t - start.getTime()) / totalMs) * 100;
+                const dateObj = new Date(t);
+                const lbl = forecastScale === 'day' ? 
+                            dateObj.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'}) : 
+                            dateObj.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'});
+                headerHtml += `<div class="gantt-grid-line-major" style="left: ${pct}%;"></div>`;
+                headerHtml += `<div class="gantt-header-label" style="left: ${pct}%;">${lbl}</div>`;
+            }
+            headerHtml += `</div></div>`;
+            container.innerHTML += headerHtml;
+
+            const nowPct = ((now.getTime() - start.getTime()) / totalMs) * 100;
+
+            // Lignes des parkings (Axe Y)
+            for (const sId of Object.keys(AppConfig.stands)) {
+                let rowClasses = "gantt-row";
+                if (typeInfo) {
+                    rowClasses += isCompatible(typeInfo, sId) ? " stand-compat-ok" : " stand-compat-ko";
+                }
+
+                let rowHtml = `<div class="${rowClasses}">
+                    <div class="gantt-stand">Poste ${sId}</div>
+                    <div class="gantt-timeline" onclick="clickForecastEmpty('${sId}', event, ${start.getTime()}, ${totalMs})">`;
+
+                for(let t = start.getTime(); t <= end.getTime(); t += stepMs) {
+                    const pct = ((t - start.getTime()) / totalMs) * 100;
+                    rowHtml += `<div class="gantt-grid-line" style="left: ${pct}%;"></div>`;
+                }
+
+                if (nowPct >= 0 && nowPct <= 100) {
+                    rowHtml += `<div class="gantt-current-time" style="left: ${nowPct}%;"></div>`;
+                }
+
+                // Blocs Avions
+                const standForecasts = forecastAircraft.filter(f => f.stand === sId);
+                standForecasts.forEach(f => {
+                    const fArr = new Date(f.arr + 'Z').getTime();
+                    const fDep = new Date(f.dep + 'Z').getTime();
+
+                    if (fDep > start.getTime() && fArr < end.getTime()) {
+                        const leftPct = Math.max(0, ((fArr - start.getTime()) / totalMs) * 100);
+                        const rightPct = Math.min(100, ((fDep - start.getTime()) / totalMs) * 100);
+                        const widthPct = rightPct - leftPct;
+
+                        rowHtml += `<div class="gantt-block flex flex-col justify-center" style="left: ${leftPct}%; width: ${widthPct}%;" onclick="event.stopPropagation(); editForecast('${f.id}')">
+                            <div><strong class="text-amber-300 mr-1">${f.type}</strong> ${f.reg !== 'NO-REG' ? f.reg : ''}</div>
+                        </div>`;
+                    }
+                });
+
+                rowHtml += `</div></div>`;
+                container.innerHTML += rowHtml;
+            }
+        }
+
+        function clickForecastEmpty(sId, event, startMs, totalMs) {
+            const rect = event.currentTarget.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const clickPct = clickX / rect.width;
+            const clickTime = new Date(startMs + clickPct * totalMs);
+
+            const endClickTime = new Date(clickTime.getTime() + 2 * 3600 * 1000); // 2h default
+
+            $('fc-id').value = '';
+            $('fc-stand').value = sId;
+            $('fc-type').value = '';
+            $('fc-reg').value = '';
+            $('fc-arr').value = getUtcDateString(clickTime);
+            $('fc-dep').value = getUtcDateString(endClickTime);
+            $('fc-comment').value = '';
+            
+            $('btn-fc-delete').classList.add('hidden');
+            $('btn-fc-transfer').classList.add('hidden');
+
+            openModal('modal-forecast-edit');
+        }
+
+        function editForecast(id) {
+            const f = forecastAircraft.find(x => x.id === id);
+            if (!f) return;
+            
+            $('fc-id').value = f.id;
+            $('fc-stand').value = f.stand;
+            $('fc-type').value = f.type;
+            $('fc-reg').value = f.reg === 'NO-REG' ? '' : f.reg;
+            $('fc-arr').value = f.arr;
+            $('fc-dep').value = f.dep;
+            $('fc-comment').value = f.comment || '';
+            
+            $('btn-fc-delete').classList.remove('hidden');
+            $('btn-fc-transfer').classList.remove('hidden');
+
+            openModal('modal-forecast-edit');
+        }
+
+        function saveForecast() {
+            const id = $('fc-id').value;
+            const sId = $('fc-stand').value;
+            const type = $('fc-type').value.trim().toUpperCase();
+            const reg = $('fc-reg').value.trim().toUpperCase() || 'NO-REG';
+            const arr = $('fc-arr').value;
+            const dep = $('fc-dep').value;
+            const comment = $('fc-comment').value;
+
+            if(!type) return showToast("Code OACI requis", "error");
+            if(!AppConfig.aircrafts[type]) return showToast("Type d'avion inconnu", "error");
+            if(!arr || !dep || arr >= dep) return showToast("Horaires invalides", "error");
+
+            // Overlap check
+            const arrMs = new Date(arr+'Z').getTime();
+            const depMs = new Date(dep+'Z').getTime();
+            const overlap = forecastAircraft.find(f => f.stand === sId && f.id !== id && (
+                (arrMs >= new Date(f.arr+'Z').getTime() && arrMs < new Date(f.dep+'Z').getTime()) ||
+                (depMs > new Date(f.arr+'Z').getTime() && depMs <= new Date(f.dep+'Z').getTime()) ||
+                (arrMs <= new Date(f.arr+'Z').getTime() && depMs >= new Date(f.dep+'Z').getTime())
+            ));
+            
+            if (overlap) return showToast(`Conflit d'horaire avec l'avion ${overlap.type} au poste ${sId}`, "error");
+
+            if (id) {
+                const idx = forecastAircraft.findIndex(x => x.id === id);
+                if (idx > -1) forecastAircraft[idx] = { id, stand: sId, type, reg, arr, dep, comment };
+            } else {
+                forecastAircraft.push({ id: Date.now().toString(), stand: sId, type, reg, arr, dep, comment });
+            }
+
+            saveForecastData();
+            closeModal('modal-forecast-edit');
+            renderForecast();
+            showToast("Prévisionnel enregistré");
+        }
+
+        function deleteForecast() {
+            if(!confirm("Supprimer ce prévisionnel ?")) return;
+            const id = $('fc-id').value;
+            forecastAircraft = forecastAircraft.filter(x => x.id !== id);
+            saveForecastData();
+            closeModal('modal-forecast-edit');
+            renderForecast();
+            showToast("Prévisionnel supprimé");
+        }
+
+        function transferForecast() {
+            const id = $('fc-id').value;
+            const f = forecastAircraft.find(x => x.id === id);
+            if (!f) return;
+
+            const info = AppConfig.aircrafts[f.type] || { cat: 'avion', span: 99, length: 99, mtow: 0 };
+            
+            if (parkedAircraft[f.stand]) return showToast("Poste occupé sur le Tarmac réel", "error");
+            if (isStandCondemned(f.stand)) return showToast("Poste condamné sur le Tarmac réel", "error");
+            if (!isCompatible(info, f.stand)) return showToast("Avion incompatible avec ce poste", "error");
+
+            let isAuto = ['A10', 'A11', 'A12', 'B1'].includes(f.stand);
+            if (['A3', 'A5', 'A7', 'A9'].includes(f.stand) && isStandEligibleForAuto(f.stand, info)) isAuto = true;
+            
+            registerImmat(f.reg, f.type);
+            parkedAircraft[f.stand] = { type: f.type, reg: f.reg, category: info.cat, specs: info, arr: f.arr, dep: f.dep, autonomous: isAuto, d5Orientation: null, comment: f.comment };
+            
+            forecastAircraft = forecastAircraft.filter(x => x.id !== id);
+            saveForecastData();
+            saveParked();
+            
+            closeModal('modal-forecast-edit');
+            renderForecast();
+            showToast(`L'avion est maintenant garé en ${f.stand} sur le Tarmac Réel !`);
+        }
+
+        function saveForecastData() {
+            localStorage.setItem('forecastAircraft', JSON.stringify(forecastAircraft));
+            saveToGitHub();
+        }
+
+        // --- Logique existante (Nettoyage & Synchro) ---
         const cleanOldArchives = () => {
             const now = new Date().getTime();
             const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000;
@@ -410,38 +774,38 @@
             saveToGitHub(); 
         };
 
-       const saveParked = () => { 
-    localStorage.setItem('parkedAircraft', JSON.stringify(parkedAircraft)); 
-    updateCondemnedMap(); 
-    saveToGitHub(); // <-- Envoi immédiat et automatique vers le fichier distant GitHub
-};
+        const saveParked = () => { 
+            localStorage.setItem('parkedAircraft', JSON.stringify(parkedAircraft)); 
+            updateCondemnedMap(); 
+            saveToGitHub();
+        };
 
-const saveHistory = () => { 
-    localStorage.setItem('aircraftHistory', JSON.stringify(aircraftHistory)); 
-    saveToGitHub(); 
-};
+        const saveHistory = () => { 
+            localStorage.setItem('aircraftHistory', JSON.stringify(aircraftHistory)); 
+            saveToGitHub(); 
+        };
 
-const saveRegDatabase = () => { 
-    localStorage.setItem('regDatabase', JSON.stringify(regDatabase)); 
-    saveToGitHub(); 
-};
+        const saveRegDatabase = () => { 
+            localStorage.setItem('regDatabase', JSON.stringify(regDatabase)); 
+            saveToGitHub(); 
+        };
 
-function initApron() {
-    const svgGroup = $('tarmac-stands-svg-group');
-    if (!svgGroup) return;
-    svgGroup.innerHTML = '';
-    for (const [sId, specs] of Object.entries(AppConfig.stands)) {
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        g.setAttribute('id', `stand-group-${sId}`); g.setAttribute('onclick', `clickStand('${sId}')`);
-        g.addEventListener('mouseenter', (e) => handleTooltipEnter(e, sId)); 
-        g.addEventListener('mousemove', moveTooltip); 
-        g.addEventListener('mouseleave', hideTooltip);
+        function initApron() {
+            const svgGroup = $('tarmac-stands-svg-group');
+            if (!svgGroup) return;
+            svgGroup.innerHTML = '';
+            for (const [sId, specs] of Object.entries(AppConfig.stands)) {
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('id', `stand-group-${sId}`); g.setAttribute('onclick', `clickStand('${sId}')`);
+                g.addEventListener('mouseenter', (e) => handleTooltipEnter(e, sId)); 
+                g.addEventListener('mousemove', moveTooltip); 
+                g.addEventListener('mouseleave', hideTooltip);
 
-        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        rect.setAttribute('id', `stand-rect-${sId}`);
-        rect.setAttribute('x', specs.x); rect.setAttribute('y', specs.y); 
-        rect.setAttribute('width', specs.w); rect.setAttribute('height', specs.h); rect.setAttribute('rx', specs.rx || 4);
-        g.appendChild(rect);
+                const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                rect.setAttribute('id', `stand-rect-${sId}`);
+                rect.setAttribute('x', specs.x); rect.setAttribute('y', specs.y); 
+                rect.setAttribute('width', specs.w); rect.setAttribute('height', specs.h); rect.setAttribute('rx', specs.rx || 4);
+                g.appendChild(rect);
 
                 const iconLayer = document.createElementNS('http://www.w3.org/2000/svg', 'g');
                 iconLayer.setAttribute('id', `stand-icon-${sId}`); iconLayer.setAttribute('pointer-events', 'none');
@@ -541,25 +905,24 @@ function initApron() {
         function hideTooltip() { $('custom-tooltip').style.display = 'none'; }
         
         function launchAppFullscreen() {
-    const el = document.documentElement;
-    const rfs = el.requestFullscreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
-    if (rfs) {
-        rfs.call(el).catch(err => console.warn("Plein écran refusé :", err));
-    }
-    const launcher = $('app-launcher-overlay');
-    if (launcher) {
-        launcher.style.opacity = '0';
-        setTimeout(() => launcher.remove(), 300);
-    }
-}
+            const el = document.documentElement;
+            const rfs = el.requestFullscreen || el.webkitRequestFullScreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+            if (rfs) {
+                rfs.call(el).catch(err => console.warn("Plein écran refusé :", err));
+            }
+            const launcher = $('app-launcher-overlay');
+            if (launcher) {
+                launcher.style.opacity = '0';
+                setTimeout(() => launcher.remove(), 300);
+            }
+        }
     
-    // 2. On supprime l'overlay de démarrage de manière garantie
-    const launcher = $('app-launcher-overlay');
-    if (launcher) {
-        launcher.style.opacity = '0';
-        launcher.style.pointerEvents = 'none'; // Désactive les clics immédiatement
-        setTimeout(() => launcher.remove(), 300);
-    }
+        const launcher = $('app-launcher-overlay');
+        if (launcher) {
+            launcher.style.opacity = '0';
+            launcher.style.pointerEvents = 'none';
+            setTimeout(() => launcher.remove(), 300);
+        }
 
         function closeApp() {
             if (confirm("Voulez-vous vraiment fermer l'application ?")) {
@@ -570,7 +933,7 @@ function initApron() {
         }
 
         function exportStandaloneApp() {
-            const dataToExport = { AppConfig: AppConfig, parkedAircraft: parkedAircraft, aircraftHistory: aircraftHistory, regDatabase: regDatabase };
+            const dataToExport = { AppConfig: AppConfig, parkedAircraft: parkedAircraft, aircraftHistory: aircraftHistory, regDatabase: regDatabase, forecastAircraft: forecastAircraft };
             const dataStr = encodeURIComponent(JSON.stringify(dataToExport));
             const docClone = document.documentElement.cloneNode(true);
             
@@ -615,8 +978,6 @@ function initApron() {
             const btn = $('tz-settings-btn'); if(btn) btn.textContent = AppConfig.timezone;
             updateApronDisplay();
         }
-
-        const getTZOffset = () => AppConfig.timezone === 'UTC+2' ? 2 : 1;
 
         const getUtcDateString = (dateObj = new Date()) => {
             return dateObj.toISOString().slice(0, 16);
@@ -877,7 +1238,7 @@ function initApron() {
                 autoContainer.classList.remove('hidden'); return;
             }
 
-            const listId = mode === 'sidebar' ? 'autocomplete-sidebar' : mode === 'add' ? 'autocomplete-add' : mode === 'immat-add' ? 'auto-direct-immat-add' : `auto-direct-${mode}`;
+            const listId = mode === 'sidebar' ? 'autocomplete-sidebar' : mode === 'add' ? 'autocomplete-add' : mode === 'immat-add' ? 'auto-direct-immat-add' : mode === 'forecast' ? 'auto-direct-forecast' : `auto-direct-${mode}`;
             const container = $(listId); if (!container) return;
 
             if (!q) { 
@@ -908,7 +1269,7 @@ function initApron() {
                 const item = AppConfig.aircrafts[code];
                 let compatHtml = '', clickHandler = `onclick="selectSearch('${mode}', '${code}')"`, cursorCls = 'cursor-pointer hover:bg-slate-600';
 
-                if (mode !== 'add' && mode !== 'immat-add') {
+                if (mode !== 'add' && mode !== 'immat-add' && mode !== 'forecast') {
                     const compat = isCompatible(item, mode), occ = parkedAircraft[mode], cond = isStandCondemned(mode);
                     if (!compat || occ || cond) {
                         compatHtml = `<span class="text-[9px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 ml-2">${!compat ? 'INCOMPATIBLE' : (occ ? 'OCCUPÉ' : 'CONDAMNÉ')}</span>`;
@@ -927,7 +1288,8 @@ function initApron() {
         }
 
         function selectSearch(mode, code, regFound = null) {
-            const dropdownEl = $(mode === 'sidebar' ? 'autocomplete-sidebar' : mode === 'add' ? 'autocomplete-add' : mode === 'immat-add' ? 'auto-direct-immat-add' : `auto-direct-${mode}`);
+            const listId = mode === 'sidebar' ? 'autocomplete-sidebar' : mode === 'add' ? 'autocomplete-add' : mode === 'immat-add' ? 'auto-direct-immat-add' : mode === 'forecast' ? 'auto-direct-forecast' : `auto-direct-${mode}`;
+            const dropdownEl = $(listId);
             if (dropdownEl) dropdownEl.classList.add('hidden');
             
             if (mode === 'sidebar') {
@@ -954,6 +1316,7 @@ function initApron() {
                 renderPushResult(code);
             } else if (mode === 'add') { $('ac-type').value = code; processAddFormContext(code); } 
             else if (mode === 'immat-add') { $('new-immat-type').value = code; } 
+            else if (mode === 'forecast') { $('fc-type').value = code; }
             else { $(`direct-input-${mode}`).value = code; processDirectFormContext(mode, code); }
         }
 
@@ -1345,7 +1708,7 @@ function initApron() {
 
         window.onclick = (e) => {
             if(!e.target.closest('.relative')) {
-                ['autocomplete-sidebar', 'autocomplete-add', 'dropdown-add', 'autocomplete-reg-add', 'auto-direct-immat-add'].forEach(id => { const el = $(id); if(el) el.classList.add('hidden'); });
+                ['autocomplete-sidebar', 'autocomplete-add', 'dropdown-add', 'autocomplete-reg-add', 'auto-direct-immat-add', 'auto-direct-forecast'].forEach(id => { const el = $(id); if(el) el.classList.add('hidden'); });
                 $$('[id^="auto-direct-"], [id^="auto-reg-direct-"], [id^="auto-immat-edit-"]').forEach(el => el.classList.add('hidden'));
             }
         };
@@ -1362,60 +1725,48 @@ function initApron() {
         const GITHUB_REPO = "Aeropark-GNB";
         const GITHUB_FILE_PATH = "Aeropark_data.json";
         const getGitHubToken = () => localStorage.getItem('github_token') || "";
-
         const githubApiUrl = `https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
 
         async function loadAeroparkDataFromGitHub(isSilent = false) {
-    try {
-        const response = await fetch(githubApiUrl, {
-            headers: { "Authorization": `token ${getGitHubToken()}` },
-            cache: "no-store"
-        });
-        if (!response.ok) throw new Error("Erreur de chargement réseau");
-        
-        const fileMeta = await response.json();
-        // Décodage UTF-8 robuste du contenu distant
-        const remoteData = JSON.parse(decodeURIComponent(escape(atob(fileMeta.content.replace(/\s/g, "")))));
-        
-        // Injection prioritaire des données distantes dans l'application
-        if (remoteData.AppConfig) {
-            AppConfig = remoteData.AppConfig;
-            localStorage.setItem('AppConfig', JSON.stringify(AppConfig));
-        }
-        if (remoteData.regDatabase) {
-            regDatabase = remoteData.regDatabase;
-            localStorage.setItem('regDatabase', JSON.stringify(regDatabase));
-        }
-        if (remoteData.parkedAircraft) {
-            parkedAircraft = remoteData.parkedAircraft;
-            localStorage.setItem('parkedAircraft', JSON.stringify(parkedAircraft));
-        }
-        if (remoteData.aircraftHistory) {
-            aircraftHistory = remoteData.aircraftHistory;
-            localStorage.setItem('aircraftHistory', JSON.stringify(aircraftHistory));
-        }
-        
-        // Mise à jour immédiate de l'affichage
-        updateCondemnedMap();
-        initApron();
-        updateApronDisplay();
+            try {
+                const response = await fetch(githubApiUrl, {
+                    headers: { "Authorization": `token ${getGitHubToken()}` },
+                    cache: "no-store"
+                });
+                if (!response.ok) throw new Error("Erreur de chargement réseau");
+                
+                const fileMeta = await response.json();
+                const remoteData = JSON.parse(decodeURIComponent(escape(atob(fileMeta.content.replace(/\s/g, "")))));
+                
+                if (remoteData.AppConfig) { AppConfig = remoteData.AppConfig; localStorage.setItem('AppConfig', JSON.stringify(AppConfig)); }
+                if (remoteData.regDatabase) { regDatabase = remoteData.regDatabase; localStorage.setItem('regDatabase', JSON.stringify(regDatabase)); }
+                if (remoteData.parkedAircraft) { parkedAircraft = remoteData.parkedAircraft; localStorage.setItem('parkedAircraft', JSON.stringify(parkedAircraft)); }
+                if (remoteData.aircraftHistory) { aircraftHistory = remoteData.aircraftHistory; localStorage.setItem('aircraftHistory', JSON.stringify(aircraftHistory)); }
+                if (remoteData.forecastAircraft) { forecastAircraft = remoteData.forecastAircraft; localStorage.setItem('forecastAircraft', JSON.stringify(forecastAircraft)); }
+                
+                updateCondemnedMap();
+                initApron();
+                
+                if (currentMainView === 'tarmac') updateApronDisplay();
+                if (currentMainView === 'forecast') renderForecast();
 
-        if (!isSilent) {
-            updateTZUI();
-            switchTab('sidebar', 'aircraft');
-            setDefaultDates();
+                if (!isSilent) {
+                    updateTZUI();
+                    switchTab('sidebar', 'aircraft');
+                    setDefaultDates();
+                }
+            } catch (error) {
+                console.warn("Synchro ignorée ou mode hors-ligne, utilisation du cache local", error);
+            }
         }
-    } catch (error) {
-        console.warn("Synchro ignorée ou mode hors-ligne, utilisation du cache local", error);
-    }
-}
 
         async function saveToGitHub() {
             const dataToSend = {
                 AppConfig: AppConfig,
                 regDatabase: regDatabase,
                 parkedAircraft: parkedAircraft,
-                aircraftHistory: aircraftHistory
+                aircraftHistory: aircraftHistory,
+                forecastAircraft: forecastAircraft
             };
 
             try {
@@ -1435,7 +1786,7 @@ function initApron() {
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        message: "Mise à jour automatique AéroPark",
+                        message: "Mise à jour automatique AéroPark (inclut Prévisionnel)",
                         content: contentEncoded,
                         sha: fileMeta.sha
                     })
@@ -1445,29 +1796,27 @@ function initApron() {
             }
         }
 
-        // --- CORRECTION DU CHARGEMENT INITIAL (DOMContentLoaded unique et robuste) ---
-        // --- CORRECTION DU CHARGEMENT INITIAL (DOMContentLoaded unique et robuste) ---
         document.addEventListener('DOMContentLoaded', async () => {
             updateTZUI();
             updateCondemnedMap();
 
-            // 1. On télécharge d'abord les données distantes depuis GitHub
             await loadAeroparkDataFromGitHub();
 
-            // 2. Ensuite seulement, on dessine le tarmac et l'interface
             initApron();
             switchTab('sidebar', 'aircraft');
             updateApronDisplay();
             setDefaultDates();
+            
+            // On s'assure d'être sur la vue Tarmac par défaut
+            switchMainView('tarmac');
 
-            // 3. Lance la récupération des données distantes en arrière-plan
             loadAeroparkDataFromGitHub();
 
-            // 4. Synchronisation en direct toutes les 10 secondes
             setInterval(() => {
-                const isModalOpen = !document.getElementById('modal-overlay').classList.contains('hidden');
+                const isModalOpen = !document.getElementById('modal-overlay').classList.contains('hidden') 
+                                 || !document.getElementById('modal-forecast-edit').classList.contains('hidden');
                 if (!isModalOpen) {
-                    loadAeroparkDataFromGitHub(true); // Chargement silencieux en arrière-plan
+                    loadAeroparkDataFromGitHub(true);
                 }
             }, 10000);
         });
