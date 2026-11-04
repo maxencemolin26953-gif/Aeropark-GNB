@@ -5215,10 +5215,10 @@
     "YL-UAG": "E190",
     "OE-LUX": "GLF4",
     "F-GNSN": "BE58",
-    "FHYKE": "PC12",
     "F-HSTR": "DA40",
     "CS-PHI": "E55P",
-    "PH-DWP": "E135"
+    "PH-DWP": "E135",
+    "F-HYKE": "PC12"
   },
   "parkedAircraft": {},
   "aircraftHistory": [],
