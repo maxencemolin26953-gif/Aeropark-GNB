@@ -5215,10 +5215,11 @@
     "YL-UAG": "E190",
     "OE-LUX": "GLF4",
     "F-GNSN": "BE58",
+    "FHYKE": "PC12",
     "F-HSTR": "DA40",
     "CS-PHI": "E55P",
     "PH-DWP": "E135",
-    "F-HYKE": "PC12"
+    "LX-RUM": "PC12"
   },
   "parkedAircraft": {},
   "aircraftHistory": [],
@@ -5248,6 +5249,29 @@
         "d5Orientation": null,
         "comment": "",
         "id": "plan_1793713672113_w9x5a"
+      },
+      {
+        "type": "PC12",
+        "reg": "LX-RUM",
+        "category": "avion",
+        "specs": {
+          "cat": "avion",
+          "span": 16.25,
+          "length": 14.42,
+          "mtow": 4.7,
+          "mototok": "Non renseigné",
+          "gpu": "Non renseigné",
+          "lektro": "NIL",
+          "hydro": "N/A",
+          "parts": "",
+          "incompatiblePush": []
+        },
+        "arr": "2026-11-10T09:25",
+        "dep": "2026-11-10T15:30",
+        "autonomous": false,
+        "d5Orientation": null,
+        "comment": "",
+        "id": "plan_1793790395409_d5qvd"
       }
     ],
     "B1": [
