@@ -5222,8 +5222,9 @@
     "LX-RUM": "PC12",
     "GHGJ": "GLF4"
   },
-  "parkedAircraft": {
-    "A6": {
+  "parkedAircraft": {},
+  "aircraftHistory": [
+    {
       "type": "GLF4",
       "reg": "GHGJ",
       "category": "avion",
@@ -5243,10 +5244,11 @@
       "dep": "",
       "autonomous": false,
       "d5Orientation": null,
-      "comment": ""
+      "comment": "",
+      "stand": "A6",
+      "actualDeparture": "2026-11-05T09:12"
     }
-  },
-  "aircraftHistory": [],
+  ],
   "plannedAircraft": {
     "A6": [],
     "A11": [
