@@ -5221,31 +5221,7 @@
     "PH-DWP": "E135",
     "LX-RUM": "PC12"
   },
-  "parkedAircraft": {
-    "A11": {
-      "type": "TBM7",
-      "reg": "NO-REG",
-      "category": "avion",
-      "specs": {
-        "cat": "avion",
-        "span": 12.68,
-        "length": 10.64,
-        "mtow": 3,
-        "mototok": "Non renseigné",
-        "gpu": "Non renseigné",
-        "lektro": "NIL",
-        "hydro": "N/A",
-        "parts": "",
-        "incompatiblePush": []
-      },
-      "arr": "2026-11-05T11:00",
-      "dep": "2026-11-05T12:30",
-      "autonomous": true,
-      "d5Orientation": null,
-      "comment": "vérifier type avion sur MyHandling vol militaire ",
-      "id": "plan_1793805529087_xxye3"
-    }
-  },
+  "parkedAircraft": {},
   "aircraftHistory": [
     {
       "type": "GLF4",
@@ -5270,6 +5246,31 @@
       "comment": "",
       "stand": "A6",
       "actualDeparture": "2026-11-05T09:12"
+    },
+    {
+      "type": "TBM7",
+      "reg": "NO-REG",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 12.68,
+        "length": 10.64,
+        "mtow": 3,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "lektro": "NIL",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": []
+      },
+      "arr": "2026-11-05T11:00",
+      "dep": "2026-11-05T12:30",
+      "autonomous": true,
+      "d5Orientation": null,
+      "comment": "vérifier type avion sur MyHandling vol militaire ",
+      "id": "plan_1793805529087_xxye3",
+      "stand": "A11",
+      "actualDeparture": "2026-11-05T12:30"
     }
   ],
   "plannedAircraft": {
