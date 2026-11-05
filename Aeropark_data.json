@@ -5275,7 +5275,31 @@
   ],
   "plannedAircraft": {
     "A6": [],
-    "A11": [],
+    "A11": [
+      {
+        "type": "TBM7",
+        "reg": "NO-REG",
+        "category": "avion",
+        "specs": {
+          "cat": "avion",
+          "span": 12.68,
+          "length": 10.64,
+          "mtow": 3,
+          "mototok": "Non renseigné",
+          "gpu": "Non renseigné",
+          "lektro": "NIL",
+          "hydro": "N/A",
+          "parts": "",
+          "incompatiblePush": []
+        },
+        "arr": "2026-11-05T11:00",
+        "dep": "2026-11-05T12:30",
+        "autonomous": true,
+        "d5Orientation": null,
+        "comment": "",
+        "id": "plan_1793870154816_s73vq"
+      }
+    ],
     "D2": [
       {
         "type": "E55P",
