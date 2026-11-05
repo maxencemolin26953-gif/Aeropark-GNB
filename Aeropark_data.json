@@ -5219,9 +5219,33 @@
     "F-HSTR": "DA40",
     "CS-PHI": "E55P",
     "PH-DWP": "E135",
-    "LX-RUM": "PC12"
+    "LX-RUM": "PC12",
+    "GHGJ": "GLF4"
   },
-  "parkedAircraft": {},
+  "parkedAircraft": {
+    "A6": {
+      "type": "GLF4",
+      "reg": "GHGJ",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 23.71,
+        "length": 26.91,
+        "mtow": 33.2,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "lektro": "NIL",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": []
+      },
+      "arr": "2026-11-05T09:11",
+      "dep": "",
+      "autonomous": false,
+      "d5Orientation": null,
+      "comment": ""
+    }
+  },
   "aircraftHistory": [],
   "plannedAircraft": {
     "A6": [],
