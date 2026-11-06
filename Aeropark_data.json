@@ -5191,6 +5191,21 @@
         "parts": "",
         "incompatiblePush": [],
         "gear": "patins"
+      },
+      "E121": {
+        "cat": "avion",
+        "span": 14.45,
+        "length": 12.25,
+        "mtow": 5.67,
+        "mototok": "Non renseigné",
+        "gpu": "28V",
+        "hydro": "",
+        "parts": "",
+        "incompatiblePush": [
+          "TPX 100",
+          "TPX 200"
+        ],
+        "lektro": "NIL"
       }
     },
     "pushTractors": {
