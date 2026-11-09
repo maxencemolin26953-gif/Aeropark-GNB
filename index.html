@@ -980,6 +980,38 @@
             openPlanBlock('live', sId);
         }
 
+        function pickPlanType(ddId, code, mode, sId) {
+            $(ddId).classList.add('hidden');
+            if (mode === 'plan') {
+                const inp = $('edit-plan-type');
+                inp.value = code;
+                const regInp = $('edit-plan-reg');
+                if (regInp.value && regDatabase[regInp.value] && regDatabase[regInp.value] !== code) {
+                    regInp.value = ''; // Vidage de l'immat si le type change et ne correspond plus
+                }
+                return;
+            }
+            // Mode 'live'
+            const ac = parkedAircraft[sId];
+            if (!ac) return;
+            const info = AppConfig.aircrafts[code];
+            if (!info) return showToast("Type OACI inconnu", "error");
+            if (!isCompatible(info, sId)) return showToast("Aéronef incompatible avec ce poste", "error");
+
+            setLiveType(ac, sId, code, info);
+            ac.reg = 'NO-REG'; // Vidage de l'immatriculation lors d'un changement de type d'avion
+            
+            const typeInp = $('edit-type');
+            if (typeInp) typeInp.value = code;
+            const regInp = $('edit-reg');
+            if (regInp) regInp.value = 'NO-REG';
+
+            saveParked();
+            updateApronDisplay();
+            renderPlanning();
+            showToast(`Type changé : ${code} (Immatriculation réinitialisée)`);
+        }
+
         function setLiveType(ac, sId, code, info) {
             ac.type = code; ac.category = info.cat; ac.specs = info;
             if (['A3', 'A5', 'A7', 'A9'].includes(sId) && !isStandEligibleForAuto(sId, info)) ac.autonomous = false;
@@ -992,9 +1024,23 @@
             if (!info) return showToast("Type OACI inconnu", "error");
             if (!isCompatible(info, sId)) return showToast("Aéronef incompatible avec ce poste", "error");
             setLiveType(ac, sId, code, info); ac.reg = 'NO-REG';
+            
+            const regInp = $('edit-reg');
+            if (regInp) regInp.value = 'NO-REG'; // Vidage immédiat de l'immat si saisi manuellement
+
             saveParked(); updateApronDisplay(); renderPlanning();
             openPlanBlock('live', sId);
-            showToast(`Type changé : ${code}`);
+            showToast(`Type changé : ${code} (Immatriculation réinitialisée)`);
+        }
+
+        function jumpToAircraftType(code) {
+            closeModal('modal-stand');
+            switchTab('sidebar', 'aircraft');
+            const searchInput = $('sidebar-aircraft-search');
+            if (searchInput) {
+                searchInput.value = code;
+                handleSearch('sidebar', code);
+            }
         }
 
         function clickPlanGridCell(e, sId, startMs, pxPerMs) {
@@ -1063,6 +1109,16 @@
                 </div>
             `;
             openModal('modal-plan-action');
+        }
+
+        function syncPlanReg(inp) {
+            const val = inp.value.trim().toUpperCase();
+            const regInp = $('edit-plan-reg');
+            if (val !== inp.dataset.origType) {
+                if (regInp) regInp.value = ''; // Vidage de l'immat si le type est modifié
+            } else {
+                if (regInp) regInp.value = inp.dataset.origReg || '';
+            }
         }
 
         function savePlanEdit() {
@@ -1576,7 +1632,7 @@
                 autoContainer.classList.remove('hidden'); return;
             }
 
-            const listId = mode === 'sidebar' ? 'autocomplete-sidebar' : mode === 'add' ? 'autocomplete-add' : mode === 'immat-add' ? 'auto-direct-immat-add' : `auto-direct-${mode}`;
+            const listId = mode === 'sidebar' ? 'autocomplete-sidebar' : mode === 'add' ? 'autocomplete-add' : mode === 'immat-add' ? 'auto-direct-immat-add' : mode === 'edit' ? 'edit-type-dd' : `auto-direct-${mode}`;
             const container = $(listId); if (!container) return;
 
             if (!q) { container.classList.add('hidden'); return; }
@@ -1624,7 +1680,7 @@
         }
 
         function selectSearch(mode, code, regFound = null) {
-            const dropdownEl = $(mode === 'sidebar' ? 'autocomplete-sidebar' : mode === 'add' ? 'autocomplete-add' : mode === 'immat-add' ? 'auto-direct-immat-add' : `auto-direct-${mode}`);
+            const dropdownEl = $(mode === 'sidebar' ? 'autocomplete-sidebar' : mode === 'add' ? 'autocomplete-add' : mode === 'immat-add' ? 'auto-direct-immat-add' : mode === 'edit' ? 'edit-type-dd' : `auto-direct-${mode}`);
             if (dropdownEl) dropdownEl.classList.add('hidden');
             
             if (mode === 'sidebar') {
@@ -1651,6 +1707,14 @@
                 renderPushResult(code);
             } else if (mode === 'add') { $('ac-type').value = code; processAddFormContext(code); } 
             else if (mode === 'immat-add') { $('new-immat-type').value = code; } 
+            else if (mode === 'edit') {
+                const typeEl = $('edit-type');
+                if (typeEl) {
+                    typeEl.value = code;
+                    const sId = typeEl.dataset.sid;
+                    if (sId) applyLiveType(sId, code);
+                }
+            }
             else { $(`direct-input-${mode}`).value = code; processDirectFormContext(mode, code); }
         }
 
@@ -1807,7 +1871,10 @@
                     ${constraintAlert}
                     <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-2"><label class="text-[10px] font-bold text-slate-300 uppercase block"><i class="fa-solid fa-exchange-alt text-amber-300 mr-1"></i> Changer de poste</label>${standOptionsHtml}</div>
                     <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-3 font-mono text-xs">
-                        <div class="text-[10px] font-bold text-amber-300 uppercase tracking-wider border-b border-slate-700 pb-1 flex items-center gap-2"><i class="fa-solid fa-circle-info"></i> Caractéristiques techniques</div>
+                        <div class="flex justify-between items-center border-b border-slate-700 pb-1">
+                            <div class="text-[10px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-circle-info"></i> Caractéristiques techniques</div>
+                            <button type="button" onclick="jumpToAircraftType('${ac.type}')" class="bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/40 px-2.5 py-1 rounded-lg text-[10px] font-bold transition flex items-center gap-1.5"><i class="fa-solid fa-plane"></i> Voir Type Avion</button>
+                        </div>
                         <div class="grid grid-cols-3 gap-2 text-slate-200">
                             <div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">${isH?'Rotor':'Envergure'}</span>${info.span}m</div><div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">${isH?'LHT':'Longueur'}</span>${info.length}m</div><div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">Cat. OACI</span>Code ${catOaci}</div>
                         </div>
@@ -1818,15 +1885,15 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Aéronef ${getBadge(ac.category)}</label><input type="text" id="edit-type" data-sid="${sId}" value="${ac.type}" autocomplete="off" onfocus="this.select()"  onchange="applyLiveType('${sId}', this.value)" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs uppercase font-bold focus:border-amber-400"><div id="edit-type-dd" onmousedown="event.preventDefault()" class="hidden mt-1 bg-slate-700 border border-slate-600 rounded-lg max-h-40 overflow-y-auto custom-scrollbar"></div></div>
-                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Immatriculation</label><input type="text" id="edit-reg" data-sid="${sId}" value="${ac.reg}" autocomplete="off"  onchange="updateAc('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs uppercase focus:border-amber-400"><div id="edit-reg-dd" onmousedown="event.preventDefault()" class="hidden mt-1 bg-slate-700 border border-slate-600 rounded-lg max-h-40 overflow-y-auto custom-scrollbar"></div></div>
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 relative overflow-visible"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 block">Aéronef ${getBadge(ac.category)}</label><input type="text" id="edit-type" data-sid="${sId}" value="${ac.type}" autocomplete="off" onfocus="this.select()" oninput="handleSearch('edit', this.value)" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs uppercase font-bold focus:border-amber-400"><div id="edit-type-dd" onmousedown="event.preventDefault()" class="hidden absolute left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-lg max-h-40 overflow-y-auto custom-scrollbar z-[100]"></div></div>
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 block">Immatriculation</label><input type="text" id="edit-reg" data-sid="${sId}" value="${ac.reg}" autocomplete="off"  onchange="updateAc('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs uppercase focus:border-amber-400"><div id="edit-reg-dd" onmousedown="event.preventDefault()" class="hidden mt-1 bg-slate-700 border border-slate-600 rounded-lg max-h-40 overflow-y-auto custom-scrollbar"></div></div>
                     </div>
                     ${b2b3d5Html} ${autoHtml}
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Arrivée UTC (loc:<span class="tz-label">${AppConfig.timezone}</span>)</label><div class="flex gap-2"><input type="datetime-local" id="edit-arr" value="${ac.arr}" onchange="updateAc('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2 py-2 text-white font-mono text-xs focus:border-amber-400"><button type="button" onclick="setNowUtc('edit-arr'); updateAc('${sId}')" title="Heure actuelle UTC" class="bg-slate-700 hover:bg-amber-400 hover:text-slate-900 text-slate-300 px-3 py-2 rounded-lg transition"><i class="fa-solid fa-clock"></i></button></div></div>
-                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Départ Prévu UTC (loc:<span class="tz-label">${AppConfig.timezone}</span>)</label><div class="flex gap-2"><input type="datetime-local" id="edit-dep" value="${ac.dep}" onchange="updateAc('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2 py-2 text-white font-mono text-xs focus:border-amber-400"><button type="button" onclick="setNowUtc('edit-dep'); updateAc('${sId}')" title="Heure actuelle UTC" class="bg-slate-700 hover:bg-amber-400 hover:text-slate-900 text-slate-300 px-3 py-2 rounded-lg transition"><i class="fa-solid fa-clock"></i></button></div></div>
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 block">Arrivée UTC (loc:<span class="tz-label">${AppConfig.timezone}</span>)</label><div class="flex gap-2"><input type="datetime-local" id="edit-arr" value="${ac.arr}" onchange="updateAc('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2 py-2 text-white font-mono text-xs focus:border-amber-400"><button type="button" onclick="setNowUtc('edit-arr'); updateAc('${sId}')" title="Heure actuelle UTC" class="bg-slate-700 hover:bg-amber-400 hover:text-slate-900 text-slate-300 px-3 py-2 rounded-lg transition"><i class="fa-solid fa-clock"></i></button></div></div>
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 block">Départ Prévu UTC (loc:<span class="tz-label">${AppConfig.timezone}</span>)</label><div class="flex gap-2"><input type="datetime-local" id="edit-dep" value="${ac.dep}" onchange="updateAc('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2 py-2 text-white font-mono text-xs focus:border-amber-400"><button type="button" onclick="setNowUtc('edit-dep'); updateAc('${sId}')" title="Heure actuelle UTC" class="bg-slate-700 hover:bg-amber-400 hover:text-slate-900 text-slate-300 px-3 py-2 rounded-lg transition"><i class="fa-solid fa-clock"></i></button></div></div>
                     </div>
-                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-300 uppercase mb-1 block"><i class="fa-solid fa-comment-dots text-amber-300 mr-1"></i> Notification</label><textarea id="edit-comment" oninput="updateAc('${sId}')" rows="2" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs focus:border-amber-400 resize-none">${ac.comment || ''}</textarea></div>`;
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="block text-[10px] font-bold text-slate-300 uppercase mb-1 block"><i class="fa-solid fa-comment-dots text-amber-300 mr-1"></i> Notification</label><textarea id="edit-comment" oninput="updateAc('${sId}')" rows="2" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs focus:border-amber-400 resize-none">${ac.comment || ''}</textarea></div>`;
                 
                 a.innerHTML = `<button onclick="openDepartModal('${sId}')" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center gap-2"><i class="fa-solid fa-plane-up"></i> Libérer</button><button onclick="closeModal('modal-stand'); showToast('Modifications conservées');" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center gap-2"><i class="fa-solid fa-check"></i> Enregistrer & Fermer</button>`;
             } else if (isCond) {
