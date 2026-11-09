@@ -2136,12 +2136,15 @@
         "span": 15.18,
         "length": 14.54,
         "mtow": 5.7,
-        "mototok": "Non renseigné",
-        "gpu": "Non renseigné",
-        "lektro": "NIL",
-        "hydro": "N/A",
+        "mototok": "Palettes simples",
+        "gpu": "28V",
+        "hydro": "RIEN A FAIRE",
         "parts": "",
-        "incompatiblePush": []
+        "incompatiblePush": [
+          "TPX 100",
+          "TPX 200"
+        ],
+        "lektro": "C1/C2"
       },
       "C25B": {
         "cat": "avion",
