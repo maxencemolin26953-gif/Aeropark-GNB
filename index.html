@@ -160,7 +160,7 @@
                     </div>
                     <div class="flex items-center gap-6 text-indigo-300 font-mono font-bold text-sm bg-slate-900 px-4 py-2 rounded-lg border border-slate-700 shadow-inner">
                         <button onclick="movePlanDate(-1)" class="hover:text-white transition"><i class="fa-solid fa-chevron-left"></i></button>
-                        <span id="plan-date-label">03 NOV 2026</span>
+                        <span class="relative"><span id="plan-date-label" onclick="openPlanDatePicker()" title="Choisir une date" class="cursor-pointer hover:text-white underline decoration-dotted underline-offset-4">03 NOV 2026</span><input type="date" id="plan-date-picker" onchange="setPlanDate(this.value)" tabindex="-1" class="absolute left-0 top-full w-px h-px opacity-0 pointer-events-none"></span>
                         <button onclick="movePlanDate(1)" class="hover:text-white transition"><i class="fa-solid fa-chevron-right"></i></button>
                     </div>
                     <button onclick="resetPlanDate()" class="bg-slate-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-600 text-white border border-slate-600 transition shadow">Aujourd'hui</button>
@@ -385,7 +385,7 @@
         let plannedAircraft = JSON.parse(localStorage.getItem('plannedAircraft')) || {};
 
         let currentView = 'tarmac';
-        let planConfig = { scale: 'day', start: new Date().setHours(0,0,0,0) };
+        let planConfig = { scale: 'day', start: utcMidnight() };
         
         if (!AppConfig.timezone) AppConfig.timezone = 'UTC+1';
 
@@ -488,7 +488,9 @@
             if (currentView === 'plan') {
                 btn.innerHTML = `<i class="fa-solid fa-map"></i> Tarmac`;
                 btn.className = "bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-xl font-bold text-xs transition-colors flex items-center gap-2 shadow-lg border border-slate-600";
+                planConfig.start = utcMidnight();
                 renderPlanning();
+                centerPlanOnNow();
             } else {
                 btn.innerHTML = `<i class="fa-solid fa-calendar-days"></i> Prévisionnel`;
                 btn.className = "bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl font-bold text-xs transition-colors flex items-center gap-2 shadow-lg border border-indigo-500/50";
@@ -496,10 +498,10 @@
             }
         }
 
-        function checkConflict(sId, newArrMs, newDepMs, excludePlanId = null) {
+        function checkConflict(sId, newArrMs, newDepMs, excludePlanId = null, excludeLive = false) {
             if (newDepMs <= newArrMs) return "L'heure de départ doit être après l'arrivée.";
             const live = parkedAircraft[sId];
-            if (live) {
+            if (live && !excludeLive) {
                 const liveArrMs = live.arr && live.arr !== 'N/A' ? new Date(live.arr + 'Z').getTime() : Date.now();
                 const liveDepMs = live.dep && live.dep !== 'N/A' && live.dep !== '' ? new Date(live.dep + 'Z').getTime() : Infinity;
                 if (newArrMs < liveDepMs && newDepMs > liveArrMs) return "Conflit avec l'aéronef actuellement sur le poste.";
@@ -514,6 +516,16 @@
             return null;
         }
 
+        /* ================= PRÉVISIONNEL : axe UTC, glisser-déposer, fiches ================= */
+        function utcMidnight(ms = Date.now()) { const d = new Date(ms); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); } // fonction (hoisting) : utilisée par planConfig
+        const toUtcStr = (ms) => new Date(ms).toISOString().slice(0, 16);
+        const utcMs = (s) => new Date(s + 'Z').getTime();
+        const escHtml = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        const fmtUtc = (s) => (!s || s === 'N/A') ? '—' : s.replace('T', ' ') + ' UTC';
+        const PLAN_LABEL_W = 128; // largeur de la colonne "POSTES"
+        let planLayout = { startMs: 0, pxPerMs: 1, totalWidthPx: 1, snapMs: 300000 };
+        let planDrag = null, planSuppressClick = false, planEventsBound = false;
+
         function changePlanScale(scale) {
             planConfig.scale = scale;
             ['day', 'week', 'month'].forEach(s => {
@@ -521,66 +533,103 @@
                 if (btn) btn.className = s === scale ? "px-4 py-1.5 rounded text-xs font-bold bg-indigo-500 text-white shadow" : "px-4 py-1.5 rounded text-xs font-bold text-slate-400 hover:text-white transition";
             });
             renderPlanning();
+            centerPlanOnNow();
         }
 
         function movePlanDate(dir) {
             const d = new Date(planConfig.start);
-            if (planConfig.scale === 'day') d.setDate(d.getDate() + dir);
-            else if (planConfig.scale === 'week') d.setDate(d.getDate() + dir * 7);
-            else d.setMonth(d.getMonth() + dir);
+            if (planConfig.scale === 'day') d.setUTCDate(d.getUTCDate() + dir);
+            else if (planConfig.scale === 'week') d.setUTCDate(d.getUTCDate() + dir * 7);
+            else d.setUTCMonth(d.getUTCMonth() + dir);
             planConfig.start = d.getTime();
             renderPlanning();
         }
 
         function resetPlanDate() {
-            const d = new Date(); d.setHours(0,0,0,0);
-            planConfig.start = d.getTime();
+            planConfig.start = utcMidnight();
             renderPlanning();
+            centerPlanOnNow();
+        }
+
+        // Sélecteur de date (clic sur la date en haut)
+        function openPlanDatePicker() {
+            const el = $('plan-date-picker'); if (!el) return;
+            el.value = toUtcStr(planConfig.start).slice(0, 10);
+            try { el.showPicker(); } catch (e) { el.focus(); el.click(); }
+        }
+        function setPlanDate(val) {
+            if (!val) return;
+            planConfig.start = Date.parse(val + 'T00:00:00Z');
+            renderPlanning();
+            centerPlanOnNow();
+        }
+
+        // Centre la vue sur la ligne rouge (ou revient au début si "maintenant" est hors période)
+        function centerPlanOnNow() {
+            const sc = $('plan-grid-content').parentElement;
+            const nowLeft = (Date.now() - planLayout.startMs) * planLayout.pxPerMs;
+            if (nowLeft < 0 || nowLeft > planLayout.totalWidthPx) { sc.scrollLeft = 0; return; }
+            sc.scrollLeft = Math.max(0, PLAN_LABEL_W + nowLeft - (sc.clientWidth + PLAN_LABEL_W) / 2);
+        }
+
+        function planBlockHtml(kind, sId, p, left, width) {
+            const live = kind === 'live';
+            const cls = live ? 'bg-blue-900/80 border-blue-500 hover:bg-blue-800' : 'bg-indigo-900/80 border-indigo-400 hover:bg-indigo-800 hover:border-indigo-300';
+            return `<div class="plan-block absolute top-1.5 bottom-1.5 ${cls} border rounded-md shadow flex flex-col justify-center px-2 overflow-hidden cursor-grab select-none z-0" style="left:${left}px;width:${width}px;touch-action:none;" data-kind="${kind}" data-sid="${sId}" data-id="${live ? '' : p.id}">
+                <span class="text-[10px] font-bold text-white whitespace-nowrap pointer-events-none">${escHtml(p.type)} ${escHtml(p.reg)}</span>
+                <span class="text-[8px] ${live ? 'text-blue-300' : 'text-indigo-300'} whitespace-nowrap pointer-events-none"><i class="fa-solid ${live ? 'fa-plane' : 'fa-clock'}"></i> ${live ? 'TARMAC' : 'PRÉVU'}</span>
+            </div>`;
         }
 
         function renderPlanning() {
             if (currentView !== 'plan') return;
-            const container = $('plan-grid-content');
+            const container = $('plan-grid-content'), scroller = container.parentElement;
+            const prevScroll = { l: scroller.scrollLeft, t: scroller.scrollTop };
             const startMs = planConfig.start;
             let durationMs, totalWidthPx, tickMs;
-            
+
             if (planConfig.scale === 'day') {
-                durationMs = 24 * 3600 * 1000; totalWidthPx = 1200; tickMs = 3600 * 1000;
+                durationMs = 24 * 3600 * 1000; totalWidthPx = 1920; tickMs = 3600 * 1000; // 80 px / heure
             } else if (planConfig.scale === 'week') {
                 durationMs = 7 * 24 * 3600 * 1000; totalWidthPx = 1400; tickMs = 24 * 3600 * 1000;
-            } else { 
+            } else {
                 durationMs = 30 * 24 * 3600 * 1000; totalWidthPx = 2000; tickMs = 24 * 3600 * 1000;
             }
             const pxPerMs = totalWidthPx / durationMs;
             const endMs = startMs + durationMs;
-            
-            $('plan-date-label').textContent = new Date(startMs).toLocaleDateString('fr-FR', {day:'2-digit', month:'short', year:'numeric'}).toUpperCase();
+            planLayout = { startMs, pxPerMs, totalWidthPx, snapMs: planConfig.scale === 'day' ? 5 * 60000 : 3600000 };
+
+            $('plan-date-label').textContent = new Date(startMs).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).toUpperCase() + ' (UTC)';
+            const picker = $('plan-date-picker'); if (picker) picker.value = toUtcStr(startMs).slice(0, 10);
 
             const nowMs = Date.now();
             const nowLeft = (nowMs - startMs) * pxPerMs;
             const showNowLine = nowMs >= startMs && nowMs <= endMs;
 
-            let html = `<div class="flex border-b border-slate-700 bg-slate-900 sticky top-0 z-10 shadow-sm"><div class="w-32 shrink-0 border-r border-slate-700 p-2 font-bold text-slate-400 text-xs flex items-center justify-center bg-slate-900 sticky left-0 z-20">POSTES</div><div class="relative flex-1" style="height: 30px; width: ${totalWidthPx}px; min-width: ${totalWidthPx}px;">`;
-            
+            // Traits verticaux : heures (fort) + demi-heures (léger) ; jours + 12h en semaine ; jours en mois
+            const majorPx = tickMs * pxPerMs, minorPx = majorPx / 2, showMinor = planConfig.scale !== 'month';
+            const gridBg = `background-image:linear-gradient(to right,rgba(148,163,184,.32) 1px,transparent 1px)${showMinor ? ',linear-gradient(to right,rgba(148,163,184,.14) 1px,transparent 1px)' : ''};background-size:${majorPx}px 100%${showMinor ? `,${minorPx}px 100%` : ''};`;
+
+            let html = `<div class="flex border-b border-slate-700 bg-slate-900 sticky top-0 z-10 shadow-sm"><div class="w-32 shrink-0 border-r border-slate-700 p-2 font-bold text-slate-400 text-xs flex items-center justify-center bg-slate-900 sticky left-0 z-20">POSTES (UTC)</div><div class="relative flex-1" style="height:30px;width:${totalWidthPx}px;min-width:${totalWidthPx}px;${gridBg}">`;
+
             for (let t = startMs; t < endMs; t += tickMs) {
-                const left = (t - startMs) * pxPerMs;
-                const dateObj = new Date(t);
-                let label = planConfig.scale === 'day' ? dateObj.getHours() + 'h' : dateObj.getDate() + '/' + (dateObj.getMonth()+1);
-                html += `<div class="absolute top-0 bottom-0 border-l border-slate-700/50 text-[9px] text-slate-500 pl-1 pt-1" style="left: ${left}px;">${label}</div>`;
+                const left = (t - startMs) * pxPerMs, d = new Date(t);
+                const label = planConfig.scale === 'day' ? String(d.getUTCHours()).padStart(2, '0') + 'h' : d.getUTCDate() + '/' + (d.getUTCMonth() + 1);
+                html += `<div class="absolute top-0 text-[9px] font-bold text-slate-300 pl-1 pt-1 pointer-events-none" style="left:${left}px;">${label}</div>`;
+                if (planConfig.scale === 'day') html += `<div class="absolute top-0 text-[8px] text-slate-500 pl-1 pt-1.5 pointer-events-none" style="left:${left + majorPx / 2}px;">30</div>`;
             }
 
             if (showNowLine) {
-                html += `<div class="absolute top-0 bottom-0 z-30 pointer-events-none" style="left: ${nowLeft}px;"><div class="absolute -top-1 -translate-x-1/2 bg-rose-500 text-white text-[8px] font-bold px-1 rounded shadow">Actuel</div><div class="w-0.5 h-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]"></div></div>`;
+                html += `<div class="absolute top-0 bottom-0 z-30 pointer-events-none" style="left:${nowLeft}px;"><div class="absolute -top-1 -translate-x-1/2 bg-rose-500 text-white text-[8px] font-bold px-1 rounded shadow">Actuel</div><div class="w-0.5 h-full bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.8)]"></div></div>`;
             }
-
             html += `</div></div>`;
 
             const previewItem = activePreviewType ? AppConfig.aircrafts[activePreviewType] : null;
 
-            for (const [sId, specs] of Object.entries(AppConfig.stands)) {
+            for (const [sId] of Object.entries(AppConfig.stands)) {
                 let rowBgClass = "hover:bg-slate-800/50 transition";
                 let badgeIndicator = "";
-                
+
                 if (previewItem) {
                     const compat = isCompatible(previewItem, sId);
                     if (compat) {
@@ -592,45 +641,180 @@
                     }
                 }
 
-                html += `<div class="flex border-b border-slate-700/50 ${rowBgClass}"><div class="w-32 shrink-0 border-r border-slate-700 p-2 font-bold text-amber-300 text-xs flex items-center justify-between px-3 bg-slate-900 sticky left-0 z-10"><span>Poste ${sId}</span> ${badgeIndicator}</div><div onclick="clickPlanGridCell(event, '${sId}', ${startMs}, ${pxPerMs})" class="relative flex-1 cursor-pointer" style="height: 48px; width: ${totalWidthPx}px; min-width: ${totalWidthPx}px;">`;
-                
-                if (showNowLine) {
-                    html += `<div class="absolute top-0 bottom-0 w-0.5 bg-rose-500/50 pointer-events-none z-10" style="left: ${nowLeft}px;"></div>`;
-                }
+                html += `<div class="flex border-b border-slate-700/50 ${rowBgClass}"><div class="w-32 shrink-0 border-r border-slate-700 p-2 font-bold text-amber-300 text-xs flex items-center justify-between px-3 bg-slate-900 sticky left-0 z-10"><span>Poste ${sId}</span> ${badgeIndicator}</div><div data-row-sid="${sId}" onclick="clickPlanGridCell(event, '${sId}', ${startMs}, ${pxPerMs})" class="relative flex-1 cursor-pointer" style="height:48px;width:${totalWidthPx}px;min-width:${totalWidthPx}px;${gridBg}">`;
+
+                if (showNowLine) html += `<div class="absolute top-0 bottom-0 w-0.5 bg-rose-500/50 pointer-events-none z-10" style="left:${nowLeft}px;"></div>`;
 
                 const live = parkedAircraft[sId];
                 if (live) {
-                    const lArr = live.arr && live.arr !== 'N/A' ? new Date(live.arr + 'Z').getTime() : startMs;
-                    const lDep = live.dep && live.dep !== 'N/A' && live.dep !== '' ? new Date(live.dep + 'Z').getTime() : endMs;
+                    const lArr = live.arr && live.arr !== 'N/A' ? utcMs(live.arr) : startMs;
+                    const lDep = live.dep && live.dep !== 'N/A' && live.dep !== '' ? utcMs(live.dep) : endMs;
                     if (lArr < endMs && lDep > startMs) {
-                        const blockLeft = Math.max(0, (lArr - startMs) * pxPerMs);
-                        const blockRight = Math.min(totalWidthPx, (lDep - startMs) * pxPerMs);
-                        const blockWidth = blockRight - blockLeft;
-                        html += `<div class="absolute top-1.5 bottom-1.5 bg-blue-900/80 border border-blue-500 rounded-md shadow flex flex-col justify-center px-2 overflow-hidden cursor-not-allowed z-0" style="left: ${blockLeft}px; width: ${blockWidth}px;" title="Actuellement Garé: ${live.type} ${live.reg}">
-                            <span class="text-[10px] font-bold text-white whitespace-nowrap">${live.type} ${live.reg}</span>
-                            <span class="text-[8px] text-blue-300 whitespace-nowrap"><i class="fa-solid fa-plane"></i> TARMAC</span>
-                        </div>`;
+                        const l = Math.max(0, (lArr - startMs) * pxPerMs), r = Math.min(totalWidthPx, (lDep - startMs) * pxPerMs);
+                        html += planBlockHtml('live', sId, live, l, Math.max(4, r - l));
                     }
                 }
 
-                const plans = plannedAircraft[sId] || [];
-                for (let p of plans) {
-                    const pArr = new Date(p.arr + 'Z').getTime();
-                    const pDep = new Date(p.dep + 'Z').getTime();
+                for (const p of (plannedAircraft[sId] || [])) {
+                    const pArr = utcMs(p.arr), pDep = utcMs(p.dep);
                     if (pArr < endMs && pDep > startMs) {
-                        const blockLeft = Math.max(0, (pArr - startMs) * pxPerMs);
-                        const blockRight = Math.min(totalWidthPx, (pDep - startMs) * pxPerMs);
-                        const blockWidth = Math.max(4, blockRight - blockLeft);
-                        
-                        html += `<div onclick="event.stopPropagation(); openPlanAction('${sId}', '${p.id}')" class="absolute top-1.5 bottom-1.5 bg-indigo-900/80 border border-indigo-400 rounded-md shadow flex flex-col justify-center px-2 overflow-hidden cursor-pointer hover:bg-indigo-800 hover:border-indigo-300 transition z-0" style="left: ${blockLeft}px; width: ${blockWidth}px;" title="Prévu: ${p.type} ${p.reg}\nArr: ${p.arr.replace('T',' ')}\nDep: ${p.dep.replace('T',' ')}">
-                            <span class="text-[10px] font-bold text-white whitespace-nowrap">${p.type} ${p.reg}</span>
-                            <span class="text-[8px] text-indigo-300 whitespace-nowrap"><i class="fa-solid fa-clock"></i> PRÉVU</span>
-                        </div>`;
+                        const l = Math.max(0, (pArr - startMs) * pxPerMs), r = Math.min(totalWidthPx, (pDep - startMs) * pxPerMs);
+                        html += planBlockHtml('plan', sId, p, l, Math.max(4, r - l));
                     }
                 }
                 html += `</div></div>`;
             }
             container.innerHTML = html;
+            scroller.scrollLeft = prevScroll.l; scroller.scrollTop = prevScroll.t;
+            bindPlanEvents(container);
+        }
+
+        /* ---------- Infobulle au survol (créneaux prévus ET garés) ---------- */
+        const getPlanItem = (kind, sId, id) => kind === 'live' ? parkedAircraft[sId] : (plannedAircraft[sId] || []).find(x => x.id === id);
+
+        function showPlanTooltip(e, kind, sId, id, override = {}) {
+            const ac = getPlanItem(kind, sId, id); if (!ac) return;
+            const live = kind === 'live';
+            $('tooltip-header').innerHTML = `<span class="text-amber-300 font-bold text-sm">Poste ${override.sId || sId}</span> <span class="${live ? 'text-blue-300' : 'text-indigo-300'} text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-slate-700">${live ? 'Garé' : 'Prévu'}</span> ${getBadge(ac.category)}`;
+            $('tooltip-body').innerHTML = `<div><strong>Type:</strong> ${escHtml(ac.type)}</div><div><strong>Immat:</strong> ${escHtml(ac.reg)}</div>
+                <div class="mt-1 pt-1 border-t border-slate-600"><strong>Arr:</strong> ${fmtUtc(override.arr ?? ac.arr)}</div><div><strong>Dép:</strong> ${fmtUtc(override.dep ?? ac.dep)}</div>
+                ${ac.comment ? `<div class="mt-1 pt-1 border-t border-slate-600 text-amber-300"><i class="fa-solid fa-comment-dots mr-1"></i>${escHtml(ac.comment)}</div>` : ''}`;
+            $('custom-tooltip').style.display = 'block'; moveTooltip(e);
+        }
+
+        /* ---------- Événements : survol, clic, glisser-déposer (délégation, liés une seule fois) ---------- */
+        function bindPlanEvents(c) {
+            if (planEventsBound) return;
+            planEventsBound = true;
+            const blockOf = (e) => e.target.closest && e.target.closest('.plan-block');
+
+            c.addEventListener('mouseover', e => { const b = blockOf(e); if (b && !planDrag) showPlanTooltip(e, b.dataset.kind, b.dataset.sid, b.dataset.id); });
+            c.addEventListener('mousemove', e => { if (blockOf(e) && !planDrag) moveTooltip(e); });
+            c.addEventListener('mouseout', e => { const b = blockOf(e); if (b && !planDrag && !b.contains(e.relatedTarget)) hideTooltip(); });
+
+            // Capture : empêche l'ouverture de "Affectation" quand on clique/relâche sur un créneau
+            c.addEventListener('click', e => {
+                const b = blockOf(e);
+                if (!b && !planSuppressClick) return;
+                e.stopPropagation();
+                if (planSuppressClick) { planSuppressClick = false; return; }
+                hideTooltip(); openPlanBlock(b.dataset.kind, b.dataset.sid, b.dataset.id);
+            }, true);
+
+            c.addEventListener('pointerdown', e => {
+                const b = blockOf(e); if (!b || e.button !== 0) return;
+                const drag = { el: b, kind: b.dataset.kind, sId: b.dataset.sid, id: b.dataset.id, x0: e.clientX, y0: e.clientY, moved: false, delta: 0, target: b.dataset.sid };
+                const origin = b.parentElement;
+
+                const onMove = ev => {
+                    const dx = ev.clientX - drag.x0, dy = ev.clientY - drag.y0;
+                    if (!drag.moved && Math.hypot(dx, dy) < 5) return;
+                    drag.moved = true; planDrag = drag;
+                    const { pxPerMs, snapMs } = planLayout;
+                    drag.delta = Math.round(dx / pxPerMs / snapMs) * snapMs;
+                    const row = document.elementsFromPoint(ev.clientX, ev.clientY).find(el => el.dataset && el.dataset.rowSid);
+                    drag.target = row ? row.dataset.rowSid : drag.sId;
+                    const ty = row ? row.getBoundingClientRect().top - origin.getBoundingClientRect().top : dy;
+                    drag.el.style.transition = 'none'; drag.el.style.transform = `translate(${drag.delta * pxPerMs}px,${ty}px)`;
+                    drag.el.classList.add('opacity-80', 'shadow-2xl', 'cursor-grabbing'); drag.el.style.zIndex = 40;
+                    const ac = getPlanItem(drag.kind, drag.sId, drag.id);
+                    const shift = s => (s && s !== 'N/A') ? toUtcStr(utcMs(s) + drag.delta) : s;
+                    if (ac) showPlanTooltip(ev, drag.kind, drag.sId, drag.id, { sId: drag.target, arr: shift(ac.arr), dep: shift(ac.dep) });
+                };
+                const onEnd = () => {
+                    window.removeEventListener('pointermove', onMove);
+                    window.removeEventListener('pointerup', onEnd);
+                    window.removeEventListener('pointercancel', onEnd);
+                    if (!drag.moved) { planDrag = null; return; }
+                    planSuppressClick = true; setTimeout(() => { planSuppressClick = false; }, 80);
+                    planDrag = null; hideTooltip();
+                    commitPlanDrag(drag.kind, drag.sId, drag.id, drag.delta, drag.target);
+                    renderPlanning(); // remet le bloc à sa place si le déplacement est refusé
+                };
+                window.addEventListener('pointermove', onMove);
+                window.addEventListener('pointerup', onEnd);
+                window.addEventListener('pointercancel', onEnd);
+            });
+        }
+
+        // Clic sur un créneau → fiche d'info
+        function openPlanBlock(kind, sId, id) {
+            if (kind === 'plan') return openPlanAction(sId, id);
+            const prev = activePreviewType; activePreviewType = null; // évite le blocage "Poste occupé" du mode aperçu
+            clickStand(sId);
+            activePreviewType = prev;
+        }
+
+        // Déplacement (poste et/ou heures) d'un créneau prévu ou garé
+        function commitPlanDrag(kind, sId, id, deltaMs, newSId) {
+            if (!deltaMs && newSId === sId) return;
+            const shift = s => (s && s !== 'N/A') ? toUtcStr(utcMs(s) + deltaMs) : s;
+
+            if (kind === 'plan') {
+                const p = (plannedAircraft[sId] || []).find(x => x.id === id); if (!p) return;
+                const arr = shift(p.arr), dep = shift(p.dep);
+                const info = p.specs || AppConfig.aircrafts[p.type] || { cat: 'avion', span: 99, length: 99, mtow: 0 };
+                if (newSId !== sId && !isCompatible(info, newSId)) return showToast("Aéronef incompatible avec ce poste", "error");
+                const err = checkConflict(newSId, utcMs(arr), utcMs(dep), p.id);
+                if (err) return showToast(err, "error");
+                if (newSId !== sId) {
+                    plannedAircraft[sId] = plannedAircraft[sId].filter(x => x.id !== id);
+                    (plannedAircraft[newSId] = plannedAircraft[newSId] || []).push(p);
+                }
+                p.arr = arr; p.dep = dep;
+                savePlanned(); showToast(`Vol prévu déplacé (Poste ${newSId})`);
+                return;
+            }
+
+            const ac = parkedAircraft[sId]; if (!ac) return;
+            const old = { arr: ac.arr, dep: ac.dep };
+            ac.arr = shift(ac.arr); ac.dep = shift(ac.dep);
+            const arrMs = ac.arr && ac.arr !== 'N/A' ? utcMs(ac.arr) : Date.now();
+            const depMs = ac.dep && ac.dep !== 'N/A' ? utcMs(ac.dep) : Infinity;
+            const err = checkConflict(newSId, arrMs, depMs, null, true);
+            if (err) { ac.arr = old.arr; ac.dep = old.dep; return showToast(err, "error"); }
+            if (newSId !== sId) {
+                changeAircraftStand(sId, newSId); // contrôles existants (poste libre, condamné, compatible…) + sauvegarde
+                if (parkedAircraft[newSId] !== ac) { ac.arr = old.arr; ac.dep = old.dep; }
+                return;
+            }
+            saveParked(); updateApronDisplay(); showToast("Créneau mis à jour");
+        }
+
+        /* ---------- Recherche dynamique du type (sans immat à côté) ---------- */
+        function planTypeSearch(val, ddId, mode, sId = '') {
+            const dd = $(ddId); if (!dd) return;
+            const q = val.trim().toUpperCase();
+            const codes = Object.keys(AppConfig.aircrafts).filter(k => k.includes(q)).sort((a, b) => a.localeCompare(b));
+            if (!codes.length) { dd.classList.add('hidden'); return; }
+            dd.innerHTML = codes.map(code => `<div class="px-3 py-1.5 border-b border-slate-600 font-mono text-[10px] flex justify-between items-center cursor-pointer hover:bg-slate-600" onclick="pickPlanType('${ddId}', '${code}', '${mode}', '${sId}')"><strong class="text-amber-300 text-xs">${code}</strong><span class="text-slate-300 text-[9px]">${AppConfig.aircrafts[code].cat}</span></div>`).join('');
+            dd.classList.remove('hidden');
+        }
+
+        function pickPlanType(ddId, code, mode, sId) {
+            $(ddId).classList.add('hidden');
+            if (mode === 'live') return applyLiveType(sId, code);
+            const inp = $('edit-plan-type'); inp.value = code; syncPlanReg(inp);
+        }
+
+        // Change le type : l'immat est effacée si le type diffère de l'original
+        function syncPlanReg(inp) {
+            const same = inp.value.trim().toUpperCase() === inp.dataset.origType;
+            $('edit-plan-reg').value = same ? inp.dataset.origReg : '';
+        }
+
+        // Fiche d'un aéronef garé : changement de type (horaires inchangés, immat effacée)
+        function applyLiveType(sId, raw) {
+            const ac = parkedAircraft[sId], code = (raw || '').trim().toUpperCase();
+            if (!ac || code === ac.type) return;
+            const info = AppConfig.aircrafts[code];
+            if (!info) return showToast("Type OACI inconnu", "error");
+            if (!isCompatible(info, sId)) return showToast("Aéronef incompatible avec ce poste", "error");
+            ac.type = code; ac.reg = 'NO-REG'; ac.category = info.cat; ac.specs = info;
+            if (['A3', 'A5', 'A7', 'A9'].includes(sId) && !isStandEligibleForAuto(sId, info)) ac.autonomous = false;
+            saveParked(); updateApronDisplay(); renderPlanning();
+            openPlanBlock('live', sId); // rafraîchit la fiche
+            showToast(`Type changé : ${code}`);
         }
 
         function clickPlanGridCell(e, sId, startMs, pxPerMs) {
@@ -675,7 +859,8 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Type OACI</label>
-                            <input type="text" id="edit-plan-type" value="${p.type}" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white font-bold uppercase">
+                            <input type="text" id="edit-plan-type" value="${p.type}" data-orig-type="${p.type}" data-orig-reg="${p.reg}" autocomplete="off" onfocus="this.select()" oninput="planTypeSearch(this.value, 'plan-type-dd', 'plan'); syncPlanReg(this)" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white font-bold uppercase">
+                            <div id="plan-type-dd" class="hidden mt-1 bg-slate-700 border border-slate-600 rounded-lg max-h-40 overflow-y-auto custom-scrollbar"></div>
                         </div>
                         <div>
                             <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Immatriculation</label>
@@ -1477,7 +1662,7 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Aéronef</label><div class="font-bold text-white text-sm">${ac.type} ${getBadge(ac.category)}</div></div>
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Aéronef ${getBadge(ac.category)}</label><input type="text" id="edit-type" value="${ac.type}" autocomplete="off" onfocus="this.select()" oninput="planTypeSearch(this.value, 'edit-type-dd', 'live', '${sId}')" onchange="applyLiveType('${sId}', this.value)" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs uppercase font-bold focus:border-amber-400"><div id="edit-type-dd" class="hidden mt-1 bg-slate-700 border border-slate-600 rounded-lg max-h-40 overflow-y-auto custom-scrollbar"></div></div>
                         <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Immatriculation</label><input type="text" id="edit-reg" value="${ac.reg}" onchange="updateAc('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs uppercase focus:border-amber-400"></div>
                     </div>
                     ${b2b3d5Html} ${autoHtml}
