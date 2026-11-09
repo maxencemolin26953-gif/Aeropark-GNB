@@ -14,7 +14,9 @@
         "ty": 56,
         "rot": 0,
         "constraint": "",
-        "condemns": []
+        "condemns": [
+          "A6"
+        ]
       },
       "A4": {
         "spanMax": 28.8,
