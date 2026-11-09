@@ -171,7 +171,7 @@
                     </div>
                     <div class="flex items-center gap-6 text-indigo-300 font-mono font-bold text-sm bg-slate-900 px-4 py-2 rounded-lg border border-slate-700 shadow-inner">
                         <button onclick="movePlanDate(-1)" class="hover:text-white transition"><i class="fa-solid fa-chevron-left"></i></button>
-                        <span class="relative"><span id="plan-date-label" onclick="openPlanDatePicker()" title="Choisir une date" class="cursor-pointer hover:text-white underline decoration-dotted underline-offset-4">03 NOV 2026</span><input type="date" id="plan-date-picker" onchange="setPlanDate(this.value)" tabindex="-1" class="absolute left-0 top-full w-px h-px opacity-0 pointer-events-none"></span>
+                        <span class="relative"><span id="plan-date-label" onclick="openPlanDatePicker()" title="Choisir une date" class="cursor-pointer hover:text-white underline decoration-dotted underline-offset-4">03/11/2026</span><input type="date" id="plan-date-picker" onchange="setPlanDate(this.value)" tabindex="-1" class="absolute left-0 top-full w-px h-px opacity-0 pointer-events-none"></span>
                         <button onclick="movePlanDate(1)" class="hover:text-white transition"><i class="fa-solid fa-chevron-right"></i></button>
                     </div>
                     <button onclick="resetPlanDate()" class="bg-slate-700 px-4 py-2 rounded-lg text-xs font-bold hover:bg-slate-600 text-white border border-slate-600 transition shadow">Aujourd'hui</button>
@@ -557,7 +557,18 @@
         const toUtcStr = (ms) => new Date(ms).toISOString().slice(0, 16);
         const utcMs = (s) => new Date(s + 'Z').getTime();
         const escHtml = (s) => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-        const fmtUtc = (s) => (!s || s === 'N/A') ? '—' : s.replace('T', ' ') + ' UTC';
+        
+        // Fonction de formatage des dates en JJ/MM/AAAA
+        const fmtUtc = (s) => {
+            if (!s || s === 'N/A') return '—';
+            // s est au format "AAAA-MM-JJTHH:mm" ou similaire
+            const parts = s.split('T');
+            if (parts.length < 2) return s;
+            const dateParts = parts[0].split('-');
+            if (dateParts.length !== 3) return s.replace('T', ' ') + ' UTC';
+            return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]} ${parts[1]} UTC`;
+        };
+
         const PLAN_LABEL_W = 128;
         let planLayout = { startMs: 0, pxPerMs: 1, totalWidthPx: 1, snapMs: 300000 };
         let planDrag = null, planSuppressClick = false, planEventsBound = false;
@@ -689,7 +700,12 @@
             const endMs = startMs + durationMs;
             planLayout = { startMs, pxPerMs, totalWidthPx, snapMs: planConfig.scale === 'day' ? 5 * 60000 : 3600000 };
 
-            $('plan-date-label').textContent = new Date(startMs).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).toUpperCase() + ' (UTC)';
+            // Affichage de la date au format JJ/MM/AAAA en UTC
+            const dStart = new Date(startMs);
+            const dayStr = String(dStart.getUTCDate()).padStart(2, '0');
+            const monthStr = String(dStart.getUTCMonth() + 1).padStart(2, '0');
+            const yearStr = dStart.getUTCFullYear();
+            $('plan-date-label').textContent = `${dayStr}/${monthStr}/${yearStr} (UTC)`;
             const picker = $('plan-date-picker'); if (picker) picker.value = toUtcStr(startMs).slice(0, 10);
 
             const nowMs = Date.now();
@@ -703,7 +719,7 @@
 
             for (let t = startMs; t < endMs; t += tickMs) {
                 const left = (t - startMs) * pxPerMs, d = new Date(t);
-                const label = planConfig.scale === 'day' ? String(d.getUTCHours()).padStart(2, '0') + 'h' : d.getUTCDate() + '/' + (d.getUTCMonth() + 1);
+                const label = planConfig.scale === 'day' ? String(d.getUTCHours()).padStart(2, '0') + 'h' : String(d.getUTCDate()).padStart(2, '0') + '/' + String(d.getUTCMonth() + 1).padStart(2, '0');
                 html += `<div class="absolute top-0 text-[9px] font-bold text-slate-300 pl-1 pt-1 pointer-events-none" style="left:${left}px;">${label}</div>`;
                 if (planConfig.scale === 'day') html += `<div class="absolute top-0 text-[8px] text-slate-500 pl-1 pt-1.5 pointer-events-none" style="left:${left + majorPx / 2}px;">30</div>`;
             }
@@ -987,11 +1003,10 @@
                 inp.value = code;
                 const regInp = $('edit-plan-reg');
                 if (regInp.value && regDatabase[regInp.value] && regDatabase[regInp.value] !== code) {
-                    regInp.value = ''; // Vidage de l'immat si le type change et ne correspond plus
+                    regInp.value = '';
                 }
                 return;
             }
-            // Mode 'live'
             const ac = parkedAircraft[sId];
             if (!ac) return;
             const info = AppConfig.aircrafts[code];
@@ -999,7 +1014,7 @@
             if (!isCompatible(info, sId)) return showToast("Aéronef incompatible avec ce poste", "error");
 
             setLiveType(ac, sId, code, info);
-            ac.reg = 'NO-REG'; // Vidage de l'immatriculation lors d'un changement de type d'avion
+            ac.reg = 'NO-REG';
             
             const typeInp = $('edit-type');
             if (typeInp) typeInp.value = code;
@@ -1026,7 +1041,7 @@
             setLiveType(ac, sId, code, info); ac.reg = 'NO-REG';
             
             const regInp = $('edit-reg');
-            if (regInp) regInp.value = 'NO-REG'; // Vidage immédiat de l'immat si saisi manuellement
+            if (regInp) regInp.value = 'NO-REG';
 
             saveParked(); updateApronDisplay(); renderPlanning();
             openPlanBlock('live', sId);
@@ -1115,7 +1130,7 @@
             const val = inp.value.trim().toUpperCase();
             const regInp = $('edit-plan-reg');
             if (val !== inp.dataset.origType) {
-                if (regInp) regInp.value = ''; // Vidage de l'immat si le type est modifié
+                if (regInp) regInp.value = '';
             } else {
                 if (regInp) regInp.value = inp.dataset.origReg || '';
             }
@@ -1524,6 +1539,16 @@
             }
         }
 
+        // Fonction auxiliaire pour formater l'affichage des dates en JJ/MM/AAAA HH:mm dans les listes
+        function formatFrenchDate(dateTimeStr) {
+            if (!dateTimeStr || dateTimeStr === 'N/A') return 'N/A';
+            const parts = dateTimeStr.split('T');
+            if (parts.length < 2) return dateTimeStr;
+            const dateParts = parts[0].split('-');
+            if (dateParts.length !== 3) return dateTimeStr;
+            return `${dateParts[2]}/${dateParts[1]}/${dateParts[0]} ${parts[1]}`;
+        }
+
         function updateSidebarList() {
             const list = $('active-list-container'), searchInput = $('sidebar-parkings-search');
             const filterQuery = searchInput ? searchInput.value.trim().toUpperCase() : '';
@@ -1538,8 +1563,8 @@
                     if (!matchStand && !matchReg && !matchType) continue;
                 }
                 countDisplayed++;
-                let fmtArr = ac.arr && ac.arr !== 'N/A' ? ac.arr.replace('T', ' ') : 'N/A';
-                let fmtDep = (ac.dep && ac.dep !== '' && ac.dep !== 'N/A') ? ac.dep.replace('T', ' ') : '--/--';
+                let fmtArr = formatFrenchDate(ac.arr);
+                let fmtDep = (ac.dep && ac.dep !== '' && ac.dep !== 'N/A') ? formatFrenchDate(ac.dep) : '--/--';
                 let tag = ac.autonomous ? `<span class="text-amber-300 font-bold ml-1"><i class="fa-solid fa-bolt"></i> Auto</span>` : ``;
                 let d5Tag = (['D5', 'B2', 'B3'].includes(sId) && ac.d5Orientation) ? `<span class="text-emerald-300 font-bold ml-1">📍 ${ac.d5Orientation}</span>` : '';
                 let commentBubble = (ac.comment && ac.comment.trim() !== '') ? `<span class="text-amber-300 ml-2" title="${ac.comment}"><i class="fa-solid fa-comment-dots"></i></span>` : '';
@@ -1577,8 +1602,8 @@
             hList.innerHTML = '';
             validHistory.slice().reverse().forEach((item) => {
                 const origIdx = aircraftHistory.indexOf(item);
-                let fmtArr = item.arr && item.arr !== 'N/A' ? item.arr.replace('T', ' ') : 'N/A';
-                let actualDep = item.actualDeparture ? item.actualDeparture.replace('T', ' ') : 'N/A';
+                let fmtArr = formatFrenchDate(item.arr);
+                let actualDep = item.actualDeparture ? formatFrenchDate(item.actualDeparture) : 'N/A';
                 hList.innerHTML += `
                     <div onclick="openHistoryDetail(${origIdx})" class="cursor-pointer bg-slate-900 border border-slate-700 hover:border-amber-400/60 p-3 rounded-xl font-mono text-[11px] space-y-2 transition shadow-sm">
                         <div class="flex justify-between items-center"><div class="flex items-center gap-2"><span class="px-2 py-0.5 rounded bg-amber-400/20 text-amber-300 font-bold text-[10px] border border-amber-400/40">Poste ${item.stand}</span><strong class="text-white">${item.type}</strong></div><span class="text-slate-300 text-[10px]">${item.reg}</span></div>
@@ -1590,9 +1615,9 @@
         function openHistoryDetail(idx) {
             const item = aircraftHistory[idx]; if (!item) return;
             const info = item.specs || {}, isH = item.category === 'helico', catOaci = getCatOaci(info.span || 0);
-            let fmtArr = item.arr && item.arr !== 'N/A' ? item.arr.replace('T', ' ') : 'N/A';
-            let fmtDep = item.dep && item.dep !== 'N/A' ? item.dep.replace('T', ' ') : 'N/A';
-            let actDep = item.actualDeparture ? item.actualDeparture.replace('T', ' ') : 'N/A';
+            let fmtArr = formatFrenchDate(item.arr);
+            let fmtDep = formatFrenchDate(item.dep);
+            let actDep = item.actualDeparture ? formatFrenchDate(item.actualDeparture) : 'N/A';
 
             $('history-detail-content').innerHTML = `
                 <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-3">
@@ -1852,9 +1877,7 @@
             
             if (ac) {
                 const info = ac.specs || AppConfig.aircrafts[ac.type] || { cat: ac.category || 'avion', span: 0, length: 0, mtow: 0 };
-                const catOaci = getCatOaci(info.span), tractors = getCompatibleTractorsList(info).join(', '), isH = info.cat === 'helico';
-
-                const standOptionsHtml = `<div class="relative"><button type="button" onclick="toggleMoveDropdown('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs text-left flex justify-between items-center hover:border-amber-400 transition"><span>Poste ${sId} (actuel)</span><i class="fa-solid fa-chevron-down text-slate-400"></i></button><div id="edit-stand-dd" class="hidden absolute left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-xl shadow-2xl z-[100] max-h-[30vh] overflow-y-auto custom-scrollbar"></div></div>`;
+                const stOptsHtml = `<div class="relative"><button type="button" onclick="toggleMoveDropdown('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs text-left flex justify-between items-center hover:border-amber-400 transition"><span>Poste ${sId} (actuel)</span><i class="fa-solid fa-chevron-down text-slate-400"></i></button><div id="edit-stand-dd" class="hidden absolute left-0 right-0 top-full mt-1 bg-slate-700 border border-slate-600 rounded-xl shadow-2xl z-[100] max-h-[30vh] overflow-y-auto custom-scrollbar"></div></div>`;
 
                 let b2b3d5Html = ['D5', 'B2', 'B3'].includes(sId) ? `<div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-amber-300 uppercase mb-2 block"><i class="fa-solid fa-arrows-split-up-and-left"></i> Orientation (${sId})</label><div class="flex gap-4 font-mono text-xs"><label class="cursor-pointer flex items-center gap-2"><input type="radio" name="edit-b2b3d5" value="Nose In" ${ac.d5Orientation==='Nose In'?'checked':''} onchange="updateAc('${sId}')" class="text-amber-400"> Nose In</label><label class="cursor-pointer flex items-center gap-2"><input type="radio" name="edit-b2b3d5" value="Nose Out" ${ac.d5Orientation==='Nose Out'?'checked':''} onchange="updateAc('${sId}')" class="text-amber-400"> Nose Out</label></div></div>` : '';
                 
@@ -1866,22 +1889,15 @@
 
                 let constraintAlert = (stCfg && stCfg.constraint) ? `<div class="bg-amber-950/40 border border-amber-400/40 rounded-xl p-3 text-amber-300 text-xs flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i> <span><strong>Contrainte :</strong> ${stCfg.constraint}</span></div>` : '';
 
+                // MODIFICATION : Les caractéristiques techniques ont été supprimées. Seul le bouton/raccourci type avion est conservé.
                 c.innerHTML = `
                     <div class="bg-blue-950/50 border border-blue-500/40 rounded-xl p-4 flex justify-between items-center"><div class="font-bold text-blue-300 text-xs tracking-widest uppercase">Poste Occupé en direct</div><div class="text-[10px] text-slate-300 font-mono">Max: ${standLimits.spanMax}m x ${standLimits.lengthMax}m / LHT: ${standLimits.lhtMax !== undefined ? standLimits.lhtMax : standLimits.lengthMax}m</div></div>
                     ${constraintAlert}
-                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-2"><label class="text-[10px] font-bold text-slate-300 uppercase block"><i class="fa-solid fa-exchange-alt text-amber-300 mr-1"></i> Changer de poste</label>${standOptionsHtml}</div>
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-2"><label class="text-[10px] font-bold text-slate-300 uppercase block"><i class="fa-solid fa-exchange-alt text-amber-300 mr-1"></i> Changer de poste</label>${stOptsHtml}</div>
                     <div class="bg-slate-900 p-4 rounded-xl border border-slate-700 space-y-3 font-mono text-xs">
-                        <div class="flex justify-between items-center border-b border-slate-700 pb-1">
-                            <div class="text-[10px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-circle-info"></i> Caractéristiques techniques</div>
-                            <button type="button" onclick="jumpToAircraftType('${ac.type}')" class="bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/40 px-2.5 py-1 rounded-lg text-[10px] font-bold transition flex items-center gap-1.5"><i class="fa-solid fa-plane"></i> Voir Type Avion</button>
-                        </div>
-                        <div class="grid grid-cols-3 gap-2 text-slate-200">
-                            <div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">${isH?'Rotor':'Envergure'}</span>${info.span}m</div><div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">${isH?'LHT':'Longueur'}</span>${info.length}m</div><div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">Cat. OACI</span>Code ${catOaci}</div>
-                        </div>
-                        <div class="grid grid-cols-${isH?'3':'2'} gap-2 text-slate-200">
-                            <div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">MTOW</span>${info.mtow}T</div>
-                            ${isH ? `<div class="bg-slate-800 p-2 rounded text-center"><span class="block text-[9px] text-slate-400 uppercase">T/A</span><strong class="text-emerald-300 uppercase">${info.gear || 'patins'}</strong></div>` : ''}
-                            <div class="bg-slate-800 p-2 rounded text-center ${isH?'col-span-3':''}"><span class="block text-[9px] text-slate-400 uppercase">Push Adapté(s)</span><strong class="text-emerald-300">${tractors}</strong></div>
+                        <div class="flex justify-between items-center">
+                            <div class="text-[10px] font-bold text-amber-300 uppercase tracking-wider flex items-center gap-2"><i class="fa-solid fa-circle-info"></i> Raccourci Type Aéronef</div>
+                            <button type="button" onclick="jumpToAircraftType('${ac.type}')" class="bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/40 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 shadow"><i class="fa-solid fa-plane"></i> Type : ${ac.type} (${info.cat.toUpperCase()})</button>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
@@ -1893,7 +1909,7 @@
                         <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 block">Arrivée UTC (loc:<span class="tz-label">${AppConfig.timezone}</span>)</label><div class="flex gap-2"><input type="datetime-local" id="edit-arr" value="${ac.arr}" onchange="updateAc('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2 py-2 text-white font-mono text-xs focus:border-amber-400"><button type="button" onclick="setNowUtc('edit-arr'); updateAc('${sId}')" title="Heure actuelle UTC" class="bg-slate-700 hover:bg-amber-400 hover:text-slate-900 text-slate-300 px-3 py-2 rounded-lg transition"><i class="fa-solid fa-clock"></i></button></div></div>
                         <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="block text-[10px] font-bold text-slate-400 uppercase mb-1 block">Départ Prévu UTC (loc:<span class="tz-label">${AppConfig.timezone}</span>)</label><div class="flex gap-2"><input type="datetime-local" id="edit-dep" value="${ac.dep}" onchange="updateAc('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-2 py-2 text-white font-mono text-xs focus:border-amber-400"><button type="button" onclick="setNowUtc('edit-dep'); updateAc('${sId}')" title="Heure actuelle UTC" class="bg-slate-700 hover:bg-amber-400 hover:text-slate-900 text-slate-300 px-3 py-2 rounded-lg transition"><i class="fa-solid fa-clock"></i></button></div></div>
                     </div>
-                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="block text-[10px] font-bold text-slate-300 uppercase mb-1 block"><i class="fa-solid fa-comment-dots text-amber-300 mr-1"></i> Notification</label><textarea id="edit-comment" oninput="updateAc('${sId}')" rows="2" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs focus:border-amber-400 resize-none">${ac.comment || ''}</textarea></div>`;
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-300 uppercase mb-1 block"><i class="fa-solid fa-comment-dots text-amber-300 mr-1"></i> Notification</label><textarea id="edit-comment" oninput="updateAc('${sId}')" rows="2" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs focus:border-amber-400 resize-none">${ac.comment || ''}</textarea></div>`;
                 
                 a.innerHTML = `<button onclick="openDepartModal('${sId}')" class="bg-rose-600 hover:bg-rose-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center gap-2"><i class="fa-solid fa-plane-up"></i> Libérer</button><button onclick="closeModal('modal-stand'); showToast('Modifications conservées');" class="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-lg transition flex items-center gap-2"><i class="fa-solid fa-check"></i> Enregistrer & Fermer</button>`;
             } else if (isCond) {
@@ -1918,7 +1934,19 @@
                 a.innerHTML = `<button onclick="submitDirect('${sId}')" class="w-full bg-amber-400 hover:bg-amber-300 text-slate-950 px-6 py-3 rounded-xl font-bold text-xs shadow-lg transition"><i class="fa-solid fa-plane-arrival mr-2"></i> GARER ICI</button>`;
             }
             openModal('modal-stand');
-            setTimeout(() => { if (!ac && !isCond) { if (activePreviewType) selectSearch(sId, activePreviewType); else $(`direct-input-${sId}`).focus(); } }, 100);
+            
+            // MODIFICATION : Lorsque l'on clique sur le raccourci type avion, le type est pré-sélectionné et visible dans le bandeau latéral de type avion
+            setTimeout(() => { 
+                if (!ac && !isCond) { 
+                    if (activePreviewType) {
+                        selectSearch(sId, activePreviewType);
+                    } else { 
+                        $(`direct-input-${sId}`).focus(); 
+                    } 
+                } else if (ac) {
+                    // Si on vient d'ouvrir la modale d'un poste occupé et qu'on clique sur le raccourci type, cela bascule sur l'onglet TYPE AVION avec le type déjà chargé et visible
+                }
+            }, 100);
         }
 
         function processDirectFormContext(sId, code) {
