@@ -5235,12 +5235,13 @@
     "PH-DWP": "E135",
     "LX-RUM": "PC12",
     "F-HVLJ": "C25A",
-    "F-HYKE": "PC12"
+    "F-HYKE": "PC12",
+    "F-HVL": "C510"
   },
   "parkedAircraft": {
     "A11": {
       "type": "C510",
-      "reg": "F-HVLJ",
+      "reg": "F-HVL",
       "category": "avion",
       "specs": {
         "cat": "avion",
