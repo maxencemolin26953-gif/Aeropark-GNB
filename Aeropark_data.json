@@ -5234,9 +5234,33 @@
     "F-HSTR": "DA40",
     "CS-PHI": "E55P",
     "PH-DWP": "E135",
-    "LX-RUM": "PC12"
+    "LX-RUM": "PC12",
+    "F-HVLJ": "C25A"
   },
-  "parkedAircraft": {},
+  "parkedAircraft": {
+    "A12": {
+      "type": "C25A",
+      "reg": "F-HVLJ",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 15.18,
+        "length": 14.54,
+        "mtow": 5.7,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "lektro": "NIL",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": []
+      },
+      "arr": "2026-11-08T17:12",
+      "dep": "2026-11-09T16:30",
+      "autonomous": true,
+      "d5Orientation": null,
+      "comment": ""
+    }
+  },
   "aircraftHistory": [],
   "plannedAircraft": {
     "A6": [],
