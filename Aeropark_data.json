@@ -5241,7 +5241,7 @@
   "parkedAircraft": {
     "A11": {
       "type": "C510",
-      "reg": "F-",
+      "reg": "NO-REG",
       "category": "avion",
       "specs": {
         "cat": "avion",
