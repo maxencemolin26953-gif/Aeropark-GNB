@@ -5239,23 +5239,20 @@
   },
   "parkedAircraft": {
     "A11": {
-      "type": "C510",
-      "reg": "F-HVLJ",
+      "type": "C25A",
+      "reg": "NO-REG",
       "category": "avion",
       "specs": {
         "cat": "avion",
-        "span": 13.17,
-        "length": 12.37,
-        "mtow": 3.9,
-        "mototok": "Palettes simples",
-        "gpu": "28V",
-        "hydro": "Manip à effectuer par l'équipage",
+        "span": 15.18,
+        "length": 14.54,
+        "mtow": 5.7,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "lektro": "NIL",
+        "hydro": "N/A",
         "parts": "",
-        "incompatiblePush": [
-          "TPX 100",
-          "TPX 200"
-        ],
-        "lektro": "C1/C2"
+        "incompatiblePush": []
       },
       "arr": "2026-11-08T17:12",
       "dep": "2026-11-09T16:30",
