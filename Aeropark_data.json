@@ -5241,7 +5241,7 @@
   "parkedAircraft": {
     "A11": {
       "type": "C25A",
-      "reg": "NO-REG",
+      "reg": "F-HVLJ",
       "category": "avion",
       "specs": {
         "cat": "avion",
