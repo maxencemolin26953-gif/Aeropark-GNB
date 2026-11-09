@@ -572,12 +572,14 @@
             sc.scrollLeft = Math.max(0, PLAN_LABEL_W + nowLeft - (sc.clientWidth + PLAN_LABEL_W) / 2);
         }
 
-        function planBlockHtml(kind, sId, p, left, width) {
+        function planBlockHtml(kind, sId, p, left, width, edges = {}) {
             const live = kind === 'live';
             const cls = live ? 'bg-blue-900/80 border-blue-500 hover:bg-blue-800' : 'bg-indigo-900/80 border-indigo-400 hover:bg-indigo-800 hover:border-indigo-300';
             return `<div class="plan-block absolute top-1.5 bottom-1.5 ${cls} border rounded-md shadow flex flex-col justify-center px-2 overflow-hidden cursor-grab select-none z-0" style="left:${left}px;width:${width}px;touch-action:none;" data-kind="${kind}" data-sid="${sId}" data-id="${live ? '' : p.id}">
                 <span class="text-[10px] font-bold text-white whitespace-nowrap pointer-events-none">${escHtml(p.type)} ${escHtml(p.reg)}</span>
                 <span class="text-[8px] ${live ? 'text-blue-300' : 'text-indigo-300'} whitespace-nowrap pointer-events-none"><i class="fa-solid ${live ? 'fa-plane' : 'fa-clock'}"></i> ${live ? 'TARMAC' : 'PRÉVU'}</span>
+                ${edges.arr ? '<div class="plan-handle absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/10 hover:bg-white/40" data-edge="arr" title="Glisser : heure d\'arrivée"></div>' : ''}
+                ${edges.dep ? '<div class="plan-handle absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize bg-white/10 hover:bg-white/40" data-edge="dep" title="Glisser : heure de départ"></div>' : ''}
             </div>`;
         }
 
@@ -651,7 +653,7 @@
                     const lDep = live.dep && live.dep !== 'N/A' && live.dep !== '' ? utcMs(live.dep) : endMs;
                     if (lArr < endMs && lDep > startMs) {
                         const l = Math.max(0, (lArr - startMs) * pxPerMs), r = Math.min(totalWidthPx, (lDep - startMs) * pxPerMs);
-                        html += planBlockHtml('live', sId, live, l, Math.max(4, r - l));
+                        html += planBlockHtml('live', sId, live, l, Math.max(4, r - l), { arr: live.arr && live.arr !== 'N/A' && lArr >= startMs, dep: live.dep && live.dep !== 'N/A' && lDep <= endMs });
                     }
                 }
 
@@ -659,7 +661,7 @@
                     const pArr = utcMs(p.arr), pDep = utcMs(p.dep);
                     if (pArr < endMs && pDep > startMs) {
                         const l = Math.max(0, (pArr - startMs) * pxPerMs), r = Math.min(totalWidthPx, (pDep - startMs) * pxPerMs);
-                        html += planBlockHtml('plan', sId, p, l, Math.max(4, r - l));
+                        html += planBlockHtml('plan', sId, p, l, Math.max(4, r - l), { arr: pArr >= startMs, dep: pDep <= endMs });
                     }
                 }
                 html += `</div></div>`;
@@ -703,7 +705,8 @@
 
             c.addEventListener('pointerdown', e => {
                 const b = blockOf(e); if (!b || e.button !== 0) return;
-                const drag = { el: b, kind: b.dataset.kind, sId: b.dataset.sid, id: b.dataset.id, x0: e.clientX, y0: e.clientY, moved: false, delta: 0, target: b.dataset.sid };
+                const handle = e.target.closest('.plan-handle');
+                const drag = { edge: handle ? handle.dataset.edge : null, left0: parseFloat(b.style.left), width0: parseFloat(b.style.width), el: b, kind: b.dataset.kind, sId: b.dataset.sid, id: b.dataset.id, x0: e.clientX, y0: e.clientY, moved: false, delta: 0, target: b.dataset.sid };
                 const origin = b.parentElement;
 
                 const onMove = ev => {
@@ -711,6 +714,18 @@
                     if (!drag.moved && Math.hypot(dx, dy) < 5) return;
                     drag.moved = true; planDrag = drag;
                     const { pxPerMs, snapMs } = planLayout;
+                    if (drag.edge) { // redimensionnement : uniquement arrivée OU départ
+                        const ac = getPlanItem(drag.kind, drag.sId, drag.id); if (!ac) return;
+                        const A = ac.arr && ac.arr !== 'N/A' ? utcMs(ac.arr) : -Infinity, D = ac.dep && ac.dep !== 'N/A' ? utcMs(ac.dep) : Infinity;
+                        const d = Math.round(dx / pxPerMs / snapMs) * snapMs;
+                        const nA = drag.edge === 'arr' ? Math.min(A + d, D - snapMs) : A, nD = drag.edge === 'dep' ? Math.max(D + d, A + snapMs) : D;
+                        drag.value = toUtcStr(drag.edge === 'arr' ? nA : nD);
+                        drag.el.style.transition = 'none'; drag.el.style.zIndex = 40;
+                        if (drag.edge === 'arr') { drag.el.style.left = drag.left0 + (nA - A) * pxPerMs + 'px'; drag.el.style.width = Math.max(4, drag.width0 - (nA - A) * pxPerMs) + 'px'; }
+                        else drag.el.style.width = Math.max(4, drag.width0 + (nD - D) * pxPerMs) + 'px';
+                        showPlanTooltip(ev, drag.kind, drag.sId, drag.id, { arr: drag.edge === 'arr' ? drag.value : ac.arr, dep: drag.edge === 'dep' ? drag.value : ac.dep });
+                        return;
+                    }
                     drag.delta = Math.round(dx / pxPerMs / snapMs) * snapMs;
                     const row = document.elementsFromPoint(ev.clientX, ev.clientY).find(el => el.dataset && el.dataset.rowSid);
                     drag.target = row ? row.dataset.rowSid : drag.sId;
@@ -728,7 +743,8 @@
                     if (!drag.moved) { planDrag = null; return; }
                     planSuppressClick = true; setTimeout(() => { planSuppressClick = false; }, 80);
                     planDrag = null; hideTooltip();
-                    commitPlanDrag(drag.kind, drag.sId, drag.id, drag.delta, drag.target);
+                    if (drag.edge) { if (drag.value) commitPlanResize(drag.kind, drag.sId, drag.id, drag.edge, drag.value); }
+                    else commitPlanDrag(drag.kind, drag.sId, drag.id, drag.delta, drag.target);
                     renderPlanning(); // remet le bloc à sa place si le déplacement est refusé
                 };
                 window.addEventListener('pointermove', onMove);
@@ -781,6 +797,19 @@
             saveParked(); updateApronDisplay(); showToast("Créneau mis à jour");
         }
 
+        // Modifie uniquement l'arrivée ("arr") ou le départ ("dep") d'un créneau
+        function commitPlanResize(kind, sId, id, edge, value) {
+            const item = getPlanItem(kind, sId, id); if (!item || item[edge] === value) return;
+            const arrStr = edge === 'arr' ? value : item.arr, depStr = edge === 'dep' ? value : item.dep;
+            const arrMs = arrStr && arrStr !== 'N/A' ? utcMs(arrStr) : Date.now();
+            const depMs = depStr && depStr !== 'N/A' ? utcMs(depStr) : Infinity;
+            const err = checkConflict(sId, arrMs, depMs, kind === 'plan' ? id : null, kind === 'live');
+            if (err) return showToast(err, "error");
+            item[edge] = value;
+            if (kind === 'plan') savePlanned(); else { saveParked(); updateApronDisplay(); }
+            showToast(edge === 'arr' ? "Heure d'arrivée mise à jour" : "Heure de départ mise à jour");
+        }
+
         /* ---------- Recherche dynamique du type (sans immat à côté) ---------- */
         function planTypeSearch(val, ddId, mode, sId = '') {
             const dd = $(ddId); if (!dd) return;
@@ -803,6 +832,42 @@
             $('edit-plan-reg').value = same ? inp.dataset.origReg : '';
         }
 
+        /* ---------- Recherche dynamique des immatriculations ---------- */
+        function planRegSearch(val, ddId, mode, sId = '') {
+            const dd = $(ddId); if (!dd) return;
+            const q = val.trim().toUpperCase();
+            const regs = Object.keys(regDatabase).filter(r => r.includes(q)).sort().slice(0, 50);
+            if (!q || !regs.length) { dd.classList.add('hidden'); return; }
+            dd.innerHTML = regs.map(r => `<div class="px-3 py-1.5 border-b border-slate-600 font-mono text-[10px] flex justify-between items-center cursor-pointer hover:bg-slate-600" onclick="pickPlanReg('${ddId}', '${escHtml(r)}', '${mode}', '${sId}')"><strong class="text-amber-300 text-xs">${escHtml(r)}</strong><span class="text-slate-300 font-bold px-2 py-0.5 rounded bg-slate-800 border border-slate-600">${escHtml(regDatabase[r])}</span></div>`).join('');
+            dd.classList.remove('hidden');
+        }
+
+        function pickPlanReg(ddId, reg, mode, sId) {
+            $(ddId).classList.add('hidden');
+            const mapped = regDatabase[reg];
+            if (mode === 'plan') {
+                const inp = $('edit-plan-type');
+                if (mapped && mapped !== inp.value.trim().toUpperCase()) { showToast(`Type corrigé pour ${reg} : ${mapped}`, "info"); inp.value = mapped; }
+                $('edit-plan-reg').value = reg;
+                inp.dataset.origType = inp.value.trim().toUpperCase(); inp.dataset.origReg = reg;
+                return;
+            }
+            const ac = parkedAircraft[sId]; if (!ac || reg === ac.reg) return;
+            if (isRegAlreadyParked(reg)) return showToast(`Immatriculation ${reg} déjà utilisée`, "error");
+            if (mapped && mapped !== ac.type) {
+                const info = AppConfig.aircrafts[mapped];
+                if (!info || !isCompatible(info, sId)) return showToast("Type de cette immat incompatible avec ce poste", "error");
+                setLiveType(ac, sId, mapped, info);
+            }
+            $('edit-reg').value = reg; updateAc(sId);
+            openPlanBlock('live', sId); // rafraîchit la fiche
+        }
+
+        function setLiveType(ac, sId, code, info) {
+            ac.type = code; ac.category = info.cat; ac.specs = info;
+            if (['A3', 'A5', 'A7', 'A9'].includes(sId) && !isStandEligibleForAuto(sId, info)) ac.autonomous = false;
+        }
+
         // Fiche d'un aéronef garé : changement de type (horaires inchangés, immat effacée)
         function applyLiveType(sId, raw) {
             const ac = parkedAircraft[sId], code = (raw || '').trim().toUpperCase();
@@ -810,8 +875,7 @@
             const info = AppConfig.aircrafts[code];
             if (!info) return showToast("Type OACI inconnu", "error");
             if (!isCompatible(info, sId)) return showToast("Aéronef incompatible avec ce poste", "error");
-            ac.type = code; ac.reg = 'NO-REG'; ac.category = info.cat; ac.specs = info;
-            if (['A3', 'A5', 'A7', 'A9'].includes(sId) && !isStandEligibleForAuto(sId, info)) ac.autonomous = false;
+            setLiveType(ac, sId, code, info); ac.reg = 'NO-REG';
             saveParked(); updateApronDisplay(); renderPlanning();
             openPlanBlock('live', sId); // rafraîchit la fiche
             showToast(`Type changé : ${code}`);
@@ -860,11 +924,12 @@
                         <div>
                             <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Type OACI</label>
                             <input type="text" id="edit-plan-type" value="${p.type}" data-orig-type="${p.type}" data-orig-reg="${p.reg}" autocomplete="off" onfocus="this.select()" oninput="planTypeSearch(this.value, 'plan-type-dd', 'plan'); syncPlanReg(this)" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white font-bold uppercase">
-                            <div id="plan-type-dd" class="hidden mt-1 bg-slate-700 border border-slate-600 rounded-lg max-h-40 overflow-y-auto custom-scrollbar"></div>
+                            <div id="plan-type-dd" onmousedown="event.preventDefault()" class="hidden mt-1 bg-slate-700 border border-slate-600 rounded-lg max-h-40 overflow-y-auto custom-scrollbar"></div>
                         </div>
                         <div>
                             <label class="block text-[10px] uppercase text-slate-400 mb-1 font-bold">Immatriculation</label>
-                            <input type="text" id="edit-plan-reg" value="${p.reg}" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white font-bold uppercase">
+                            <input type="text" id="edit-plan-reg" value="${p.reg}" autocomplete="off" oninput="planRegSearch(this.value, 'plan-reg-dd', 'plan')" class="w-full bg-slate-900 border border-slate-600 rounded-lg p-2 text-white font-bold uppercase">
+                            <div id="plan-reg-dd" onmousedown="event.preventDefault()" class="hidden mt-1 bg-slate-700 border border-slate-600 rounded-lg max-h-40 overflow-y-auto custom-scrollbar"></div>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
@@ -1662,8 +1727,8 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
-                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Aéronef ${getBadge(ac.category)}</label><input type="text" id="edit-type" value="${ac.type}" autocomplete="off" onfocus="this.select()" oninput="planTypeSearch(this.value, 'edit-type-dd', 'live', '${sId}')" onchange="applyLiveType('${sId}', this.value)" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs uppercase font-bold focus:border-amber-400"><div id="edit-type-dd" class="hidden mt-1 bg-slate-700 border border-slate-600 rounded-lg max-h-40 overflow-y-auto custom-scrollbar"></div></div>
-                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Immatriculation</label><input type="text" id="edit-reg" value="${ac.reg}" onchange="updateAc('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs uppercase focus:border-amber-400"></div>
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Aéronef ${getBadge(ac.category)}</label><input type="text" id="edit-type" value="${ac.type}" autocomplete="off" onfocus="this.select()" oninput="planTypeSearch(this.value, 'edit-type-dd', 'live', '${sId}')" onchange="applyLiveType('${sId}', this.value)" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs uppercase font-bold focus:border-amber-400"><div id="edit-type-dd" onmousedown="event.preventDefault()" class="hidden mt-1 bg-slate-700 border border-slate-600 rounded-lg max-h-40 overflow-y-auto custom-scrollbar"></div></div>
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-700"><label class="text-[10px] font-bold text-slate-400 uppercase mb-1 block">Immatriculation</label><input type="text" id="edit-reg" value="${ac.reg}" autocomplete="off" oninput="planRegSearch(this.value, 'edit-reg-dd', 'live', '${sId}')" onchange="updateAc('${sId}')" class="w-full bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white font-mono text-xs uppercase focus:border-amber-400"><div id="edit-reg-dd" onmousedown="event.preventDefault()" class="hidden mt-1 bg-slate-700 border border-slate-600 rounded-lg max-h-40 overflow-y-auto custom-scrollbar"></div></div>
                     </div>
                     ${b2b3d5Html} ${autoHtml}
                     <div class="grid grid-cols-2 gap-4">
