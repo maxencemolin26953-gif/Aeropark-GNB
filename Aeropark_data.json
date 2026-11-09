@@ -5265,8 +5265,10 @@
       "autonomous": true,
       "d5Orientation": null,
       "comment": ""
-    },
-    "A6": {
+    }
+  },
+  "aircraftHistory": [
+    {
       "type": "A109",
       "reg": "NO-REG",
       "category": "helico",
@@ -5286,10 +5288,11 @@
       "dep": "",
       "autonomous": false,
       "d5Orientation": null,
-      "comment": ""
+      "comment": "",
+      "stand": "A6",
+      "actualDeparture": "2026-11-09T15:18"
     }
-  },
-  "aircraftHistory": [],
+  ],
   "plannedAircraft": {
     "A6": [],
     "A11": [
