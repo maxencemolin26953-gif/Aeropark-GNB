@@ -5267,32 +5267,7 @@
       "comment": ""
     }
   },
-  "aircraftHistory": [
-    {
-      "type": "A109",
-      "reg": "NO-REG",
-      "category": "helico",
-      "specs": {
-        "cat": "helico",
-        "span": 11,
-        "length": 13,
-        "mtow": 2.8,
-        "mototok": "Non renseigné",
-        "gpu": "Non renseigné",
-        "hydro": "N/A",
-        "parts": "",
-        "gear": "roues",
-        "incompatiblePush": []
-      },
-      "arr": "2026-11-09T15:18",
-      "dep": "",
-      "autonomous": false,
-      "d5Orientation": null,
-      "comment": "",
-      "stand": "A6",
-      "actualDeparture": "2026-11-09T15:18"
-    }
-  ],
+  "aircraftHistory": [],
   "plannedAircraft": {
     "A6": [],
     "A11": [
