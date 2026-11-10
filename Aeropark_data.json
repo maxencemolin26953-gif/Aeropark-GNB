@@ -5242,30 +5242,7 @@
     "F-HVLJ": "C25A",
     "F-HYKE": "PC12"
   },
-  "parkedAircraft": {
-    "A5": {
-      "type": "A109",
-      "reg": "NO-REG",
-      "category": "helico",
-      "specs": {
-        "cat": "helico",
-        "span": 11,
-        "length": 13,
-        "mtow": 2.8,
-        "mototok": "Non renseigné",
-        "gpu": "Non renseigné",
-        "hydro": "N/A",
-        "parts": "",
-        "gear": "roues",
-        "incompatiblePush": []
-      },
-      "arr": "2026-11-10T11:59",
-      "dep": "2026-11-10T13:14",
-      "autonomous": true,
-      "d5Orientation": null,
-      "comment": ""
-    }
-  },
+  "parkedAircraft": {},
   "aircraftHistory": [
     {
       "type": "C25A",
@@ -5367,6 +5344,31 @@
         "d5Orientation": null,
         "comment": "",
         "id": "plan_1793713767616_1kcp5"
+      }
+    ],
+    "A5": [
+      {
+        "type": "A109",
+        "reg": "NO-REG",
+        "category": "helico",
+        "specs": {
+          "cat": "helico",
+          "span": 11,
+          "length": 13,
+          "mtow": 2.8,
+          "mototok": "Non renseigné",
+          "gpu": "Non renseigné",
+          "hydro": "N/A",
+          "parts": "",
+          "gear": "roues",
+          "incompatiblePush": []
+        },
+        "arr": "2026-11-10T13:24",
+        "dep": "2026-11-10T14:39",
+        "autonomous": true,
+        "d5Orientation": null,
+        "comment": "",
+        "id": "plan_1794313736199_43nrf"
       }
     ]
   }
