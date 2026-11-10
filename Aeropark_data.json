@@ -5242,8 +5242,9 @@
     "F-HVLJ": "C25A",
     "F-HYKE": "PC12"
   },
-  "parkedAircraft": {
-    "A11": {
+  "parkedAircraft": {},
+  "aircraftHistory": [
+    {
       "type": "C25A",
       "reg": "F-HVLJ",
       "category": "avion",
@@ -5263,10 +5264,11 @@
       "dep": "2026-11-09T17:15",
       "autonomous": true,
       "d5Orientation": null,
-      "comment": ""
+      "comment": "",
+      "stand": "A11",
+      "actualDeparture": "2026-11-09T17:15"
     }
-  },
-  "aircraftHistory": [],
+  ],
   "plannedAircraft": {
     "A6": [],
     "A11": [
