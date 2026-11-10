@@ -5243,7 +5243,7 @@
     "F-HYKE": "PC12"
   },
   "parkedAircraft": {
-    "A7": {
+    "A11": {
       "type": "A10",
       "reg": "NO-REG",
       "category": "avion",
@@ -5262,8 +5262,8 @@
         ],
         "lektro": "NIL"
       },
-      "arr": "2026-11-10T10:09",
-      "dep": "2026-11-10T12:09",
+      "arr": "2026-11-10T11:49",
+      "dep": "2026-11-10T13:49",
       "autonomous": true,
       "d5Orientation": null,
       "comment": ""
