@@ -5216,7 +5216,7 @@
         "cat": "helico",
         "span": 16.2,
         "length": 19.5,
-        "mtow": 11,
+        "mtow": 9.3,
         "mototok": "Non renseigné",
         "gpu": "Non renseigné",
         "hydro": "N/A",
@@ -5231,7 +5231,7 @@
         "mtow": 10,
         "mototok": "Non renseigné",
         "gpu": "Non renseigné",
-        "hydro": "",
+        "hydro": "N/A",
         "parts": "",
         "incompatiblePush": [],
         "gear": "roues"
