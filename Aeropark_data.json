@@ -5266,7 +5266,33 @@
     "F-HVLJ": "C25A",
     "F-HYKE": "PC12"
   },
-  "parkedAircraft": {},
+  "parkedAircraft": {
+    "A6": {
+      "type": "A10",
+      "reg": "NO-REG",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 17.53,
+        "length": 16.25,
+        "mtow": 22.7,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": [
+          "TPX 100",
+          "TPX 200"
+        ],
+        "lektro": "NIL"
+      },
+      "arr": "2026-11-11T10:04",
+      "dep": "",
+      "autonomous": false,
+      "d5Orientation": null,
+      "comment": ""
+    }
+  },
   "aircraftHistory": [],
   "plannedAircraft": {
     "A6": [],
