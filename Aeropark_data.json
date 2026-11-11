@@ -5211,6 +5211,18 @@
           "TPX 200"
         ],
         "lektro": "NIL"
+      },
+      "AS32": {
+        "cat": "helico",
+        "span": 15.58,
+        "length": 18.7,
+        "mtow": 9.35,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "hydro": "",
+        "parts": "",
+        "incompatiblePush": [],
+        "gear": "roues"
       }
     },
     "pushTractors": {
