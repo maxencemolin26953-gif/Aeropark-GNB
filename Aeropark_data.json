@@ -5223,6 +5223,18 @@
         "parts": "",
         "incompatiblePush": [],
         "gear": "roues"
+      },
+      "S61": {
+        "cat": "helico",
+        "span": 18.9,
+        "length": 22.1,
+        "mtow": 10,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "hydro": "",
+        "parts": "",
+        "incompatiblePush": [],
+        "gear": "roues"
       }
     },
     "pushTractors": {
