@@ -5267,33 +5267,7 @@
     "F-HYKE": "PC12"
   },
   "parkedAircraft": {},
-  "aircraftHistory": [
-    {
-      "type": "AS32",
-      "reg": "NO-REG",
-      "category": "helico",
-      "specs": {
-        "cat": "helico",
-        "span": 16.2,
-        "length": 19.5,
-        "mtow": 9.3,
-        "mototok": "Non renseigné",
-        "gpu": "Non renseigné",
-        "hydro": "N/A",
-        "parts": "",
-        "incompatiblePush": [],
-        "gear": "roues"
-      },
-      "arr": "2026-11-12T08:41",
-      "dep": "",
-      "autonomous": false,
-      "d5Orientation": null,
-      "comment": "",
-      "forced": true,
-      "stand": "A4",
-      "actualDeparture": "2026-11-12T08:41"
-    }
-  ],
+  "aircraftHistory": [],
   "plannedAircraft": {
     "A6": [],
     "A11": [
