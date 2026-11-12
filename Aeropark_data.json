@@ -5266,8 +5266,9 @@
     "F-HVLJ": "C25A",
     "F-HYKE": "PC12"
   },
-  "parkedAircraft": {
-    "A4": {
+  "parkedAircraft": {},
+  "aircraftHistory": [
+    {
       "type": "AS32",
       "reg": "NO-REG",
       "category": "helico",
@@ -5288,10 +5289,11 @@
       "autonomous": false,
       "d5Orientation": null,
       "comment": "",
-      "forced": true
+      "forced": true,
+      "stand": "A4",
+      "actualDeparture": "2026-11-12T08:41"
     }
-  },
-  "aircraftHistory": [],
+  ],
   "plannedAircraft": {
     "A6": [],
     "A11": [
