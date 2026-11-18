@@ -5267,29 +5267,6 @@
     "F-HYKE": "PC12"
   },
   "parkedAircraft": {
-    "B2": {
-      "type": "A109",
-      "reg": "NO-REG",
-      "category": "helico",
-      "specs": {
-        "cat": "helico",
-        "span": 11,
-        "length": 13,
-        "mtow": 2.8,
-        "mototok": "Non renseigné",
-        "gpu": "Non renseigné",
-        "hydro": "N/A",
-        "parts": "",
-        "gear": "roues",
-        "incompatiblePush": []
-      },
-      "arr": "2026-11-18T15:38",
-      "dep": "N/A",
-      "autonomous": false,
-      "d5Orientation": "Nose Out",
-      "comment": "",
-      "forced": false
-    },
     "A7": {
       "type": "E135",
       "reg": "NO-REG",
@@ -5388,6 +5365,31 @@
       "comment": "",
       "forced": false,
       "stand": "A8",
+      "actualDeparture": "2026-11-18T16:07"
+    },
+    {
+      "type": "A109",
+      "reg": "NO-REG",
+      "category": "helico",
+      "specs": {
+        "cat": "helico",
+        "span": 11,
+        "length": 13,
+        "mtow": 2.8,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "hydro": "N/A",
+        "parts": "",
+        "gear": "roues",
+        "incompatiblePush": []
+      },
+      "arr": "2026-11-18T15:38",
+      "dep": "N/A",
+      "autonomous": false,
+      "d5Orientation": "Nose Out",
+      "comment": "",
+      "forced": false,
+      "stand": "B2",
       "actualDeparture": "2026-11-18T16:07"
     }
   ],
