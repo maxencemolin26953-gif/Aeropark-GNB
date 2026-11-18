@@ -5335,7 +5335,7 @@
       "arr": "2026-11-18T15:38",
       "dep": "N/A",
       "autonomous": false,
-      "d5Orientation": "Nose In",
+      "d5Orientation": "Nose Out",
       "comment": "",
       "forced": false
     }
