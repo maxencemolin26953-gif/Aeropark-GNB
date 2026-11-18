@@ -5313,7 +5313,7 @@
       "comment": "",
       "forced": false
     },
-    "A3": {
+    "A5": {
       "type": "E135",
       "reg": "NO-REG",
       "category": "avion",
@@ -5329,7 +5329,7 @@
         "parts": "",
         "incompatiblePush": []
       },
-      "arr": "2026-11-18T15:40",
+      "arr": "2026-11-18T15:35",
       "dep": "",
       "autonomous": true,
       "d5Orientation": null,
