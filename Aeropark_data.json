@@ -5338,6 +5338,29 @@
       "d5Orientation": "Nose Out",
       "comment": "",
       "forced": false
+    },
+    "A3": {
+      "type": "E135",
+      "reg": "NO-REG",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 20.06,
+        "length": 28.47,
+        "mtow": 20.2,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "lektro": "NIL",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": []
+      },
+      "arr": "2026-11-18T15:40",
+      "dep": "",
+      "autonomous": true,
+      "d5Orientation": null,
+      "comment": "",
+      "forced": false
     }
   },
   "aircraftHistory": [
