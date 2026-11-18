@@ -5266,31 +5266,7 @@
     "F-HVLJ": "C25A",
     "F-HYKE": "PC12"
   },
-  "parkedAircraft": {
-    "A7": {
-      "type": "E135",
-      "reg": "NO-REG",
-      "category": "avion",
-      "specs": {
-        "cat": "avion",
-        "span": 20.06,
-        "length": 28.47,
-        "mtow": 20.2,
-        "mototok": "Non renseigné",
-        "gpu": "Non renseigné",
-        "lektro": "NIL",
-        "hydro": "N/A",
-        "parts": "",
-        "incompatiblePush": []
-      },
-      "arr": "2026-11-18T15:30",
-      "dep": "",
-      "autonomous": true,
-      "d5Orientation": null,
-      "comment": "",
-      "forced": false
-    }
-  },
+  "parkedAircraft": {},
   "aircraftHistory": [
     {
       "type": "A320",
@@ -5390,6 +5366,31 @@
       "comment": "",
       "forced": false,
       "stand": "B2",
+      "actualDeparture": "2026-11-18T16:07"
+    },
+    {
+      "type": "E135",
+      "reg": "NO-REG",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 20.06,
+        "length": 28.47,
+        "mtow": 20.2,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "lektro": "NIL",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": []
+      },
+      "arr": "2026-11-18T15:30",
+      "dep": "",
+      "autonomous": true,
+      "d5Orientation": null,
+      "comment": "",
+      "forced": false,
+      "stand": "A7",
       "actualDeparture": "2026-11-18T16:07"
     }
   ],
