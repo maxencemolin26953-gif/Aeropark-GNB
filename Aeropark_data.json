@@ -5335,33 +5335,6 @@
       "d5Orientation": null,
       "comment": "",
       "forced": false
-    },
-    "A11": {
-      "type": "C510",
-      "reg": "NO-REG",
-      "category": "avion",
-      "specs": {
-        "cat": "avion",
-        "span": 13.17,
-        "length": 12.37,
-        "mtow": 3.9,
-        "mototok": "Palettes simples",
-        "gpu": "28V",
-        "hydro": "Manip à effectuer par l'équipage",
-        "parts": "",
-        "incompatiblePush": [
-          "TPX 100",
-          "TPX 200"
-        ],
-        "lektro": "C1/C2"
-      },
-      "arr": "2026-11-18T15:02",
-      "dep": "2026-11-19T13:12",
-      "autonomous": true,
-      "d5Orientation": null,
-      "comment": "eau ok ",
-      "forced": false,
-      "id": "plan_1795017087239_bcjpg"
     }
   },
   "aircraftHistory": [
@@ -5441,6 +5414,33 @@
         "d5Orientation": null,
         "comment": "",
         "id": "plan_1793870154816_s73vq"
+      },
+      {
+        "type": "C510",
+        "reg": "NO-REG",
+        "category": "avion",
+        "specs": {
+          "cat": "avion",
+          "span": 13.17,
+          "length": 12.37,
+          "mtow": 3.9,
+          "mototok": "Palettes simples",
+          "gpu": "28V",
+          "hydro": "Manip à effectuer par l'équipage",
+          "parts": "",
+          "incompatiblePush": [
+            "TPX 100",
+            "TPX 200"
+          ],
+          "lektro": "C1/C2"
+        },
+        "arr": "2026-11-18T16:32",
+        "dep": "2026-11-19T14:42",
+        "autonomous": true,
+        "d5Orientation": null,
+        "comment": "eau ok ",
+        "forced": false,
+        "id": "plan_1795017157239_ssi7e"
       }
     ],
     "D2": [
