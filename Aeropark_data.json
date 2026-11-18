@@ -5266,7 +5266,34 @@
     "F-HVLJ": "C25A",
     "F-HYKE": "PC12"
   },
-  "parkedAircraft": {},
+  "parkedAircraft": {
+    "A12": {
+      "type": "C510",
+      "reg": "NO-REG",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 13.17,
+        "length": 12.37,
+        "mtow": 3.9,
+        "mototok": "Palettes simples",
+        "gpu": "28V",
+        "hydro": "Manip à effectuer par l'équipage",
+        "parts": "",
+        "incompatiblePush": [
+          "TPX 100",
+          "TPX 200"
+        ],
+        "lektro": "C1/C2"
+      },
+      "arr": "2026-11-18T15:37",
+      "dep": "2026-11-19T15:37",
+      "autonomous": true,
+      "d5Orientation": null,
+      "comment": "",
+      "forced": false
+    }
+  },
   "aircraftHistory": [
     {
       "type": "A320",
