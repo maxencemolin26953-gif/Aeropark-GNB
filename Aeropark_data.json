@@ -3306,12 +3306,15 @@
         "span": 19.32,
         "length": 20.21,
         "mtow": 19.2,
-        "mototok": "Non renseigné",
+        "mototok": "Palettes doubles",
         "gpu": "Non renseigné",
-        "lektro": "NIL",
         "hydro": "N/A",
         "parts": "",
-        "incompatiblePush": []
+        "incompatiblePush": [
+          "TPX 100",
+          "TPX 200"
+        ],
+        "lektro": "NIL"
       },
       "F406": {
         "cat": "avion",
