@@ -5264,7 +5264,8 @@
     "PH-DWP": "E135",
     "LX-RUM": "PC12",
     "F-HVLJ": "C25A",
-    "F-HYKE": "PC12"
+    "F-HYKE": "PC12",
+    "LX-ROZ": "F2TH"
   },
   "parkedAircraft": {},
   "aircraftHistory": [],
@@ -5347,6 +5348,32 @@
     ],
     "A5": [],
     "A12": [],
-    "A21": []
+    "A21": [],
+    "A10": [
+      {
+        "type": "F2TH",
+        "reg": "LX-ROZ",
+        "category": "avion",
+        "specs": {
+          "cat": "avion",
+          "span": 19.32,
+          "length": 20.21,
+          "mtow": 19.2,
+          "mototok": "Non renseigné",
+          "gpu": "Non renseigné",
+          "lektro": "NIL",
+          "hydro": "N/A",
+          "parts": "",
+          "incompatiblePush": []
+        },
+        "arr": "2026-11-19T13:35",
+        "dep": "2026-11-19T14:35",
+        "autonomous": true,
+        "d5Orientation": null,
+        "comment": "",
+        "forced": false,
+        "id": "plan_1795076082101_bcydw"
+      }
+    ]
   }
 }
