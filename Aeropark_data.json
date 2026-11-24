@@ -5268,7 +5268,8 @@
     "LX-RUM": "PC12",
     "F-HVLJ": "C25A",
     "F-HYKE": "PC12",
-    "LX-ROZ": "F2TH"
+    "LX-ROZ": "F2TH",
+    "F-HALV": "C25M"
   },
   "parkedAircraft": {},
   "aircraftHistory": [],
@@ -5322,6 +5323,30 @@
         "d5Orientation": null,
         "comment": "",
         "id": "plan_1793713672113_w9x5a"
+      },
+      {
+        "type": "C25M",
+        "reg": "F-HALV",
+        "category": "avion",
+        "specs": {
+          "cat": "avion",
+          "span": 14.42,
+          "length": 12.98,
+          "mtow": 4.9,
+          "mototok": "Non renseigné",
+          "gpu": "Non renseigné",
+          "lektro": "NIL",
+          "hydro": "N/A",
+          "parts": "",
+          "incompatiblePush": []
+        },
+        "arr": "2026-11-26T10:05",
+        "dep": "2026-11-26T15:30",
+        "autonomous": false,
+        "d5Orientation": null,
+        "comment": "",
+        "forced": false,
+        "id": "plan_1795526493722_roscm"
       }
     ],
     "B1": [
