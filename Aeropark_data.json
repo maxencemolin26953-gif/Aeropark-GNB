@@ -5271,7 +5271,32 @@
     "LX-ROZ": "F2TH",
     "F-HALV": "C25M"
   },
-  "parkedAircraft": {},
+  "parkedAircraft": {
+    "D2": {
+      "type": "C525",
+      "reg": "F-HRIB",
+      "category": "avion",
+      "specs": {
+        "cat": "avion",
+        "span": 14.3,
+        "length": 12.98,
+        "mtow": 4.9,
+        "mototok": "Non renseigné",
+        "gpu": "Non renseigné",
+        "lektro": "NIL",
+        "hydro": "N/A",
+        "parts": "",
+        "incompatiblePush": []
+      },
+      "arr": "2026-11-25T12:30",
+      "dep": "2026-11-25T16:30",
+      "autonomous": false,
+      "d5Orientation": null,
+      "comment": "",
+      "forced": false,
+      "id": "plan_1795526493722_roscm"
+    }
+  },
   "aircraftHistory": [],
   "plannedAircraft": {
     "A6": [],
@@ -5323,30 +5348,6 @@
         "d5Orientation": null,
         "comment": "",
         "id": "plan_1793713672113_w9x5a"
-      },
-      {
-        "type": "C525",
-        "reg": "F-HRIB",
-        "category": "avion",
-        "specs": {
-          "cat": "avion",
-          "span": 14.3,
-          "length": 12.98,
-          "mtow": 4.9,
-          "mototok": "Non renseigné",
-          "gpu": "Non renseigné",
-          "lektro": "NIL",
-          "hydro": "N/A",
-          "parts": "",
-          "incompatiblePush": []
-        },
-        "arr": "2026-11-25T12:30",
-        "dep": "2026-11-25T16:30",
-        "autonomous": false,
-        "d5Orientation": null,
-        "comment": "",
-        "forced": false,
-        "id": "plan_1795526493722_roscm"
       }
     ],
     "B1": [
