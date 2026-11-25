@@ -5272,8 +5272,9 @@
     "F-HALV": "C25M",
     "F-HRIB": "C525"
   },
-  "parkedAircraft": {
-    "D2": {
+  "parkedAircraft": {},
+  "aircraftHistory": [
+    {
       "type": "C525",
       "reg": "F-HRIB",
       "category": "avion",
@@ -5295,10 +5296,11 @@
       "d5Orientation": null,
       "comment": "",
       "forced": false,
-      "id": "plan_1795526493722_roscm"
+      "id": "plan_1795526493722_roscm",
+      "stand": "D2",
+      "actualDeparture": "2026-11-25T16:20"
     }
-  },
-  "aircraftHistory": [],
+  ],
   "plannedAircraft": {
     "A6": [],
     "A11": [
