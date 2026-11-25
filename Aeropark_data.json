@@ -5269,7 +5269,8 @@
     "F-HVLJ": "C25A",
     "F-HYKE": "PC12",
     "LX-ROZ": "F2TH",
-    "F-HALV": "C25M"
+    "F-HALV": "C25M",
+    "F-HRIB": "C525"
   },
   "parkedAircraft": {
     "D2": {
@@ -5289,7 +5290,7 @@
         "incompatiblePush": []
       },
       "arr": "2026-11-25T12:30",
-      "dep": "2026-11-25T16:30",
+      "dep": "2026-11-25T16:20",
       "autonomous": false,
       "d5Orientation": null,
       "comment": "",
