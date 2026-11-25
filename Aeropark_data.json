@@ -5325,12 +5325,12 @@
         "id": "plan_1793713672113_w9x5a"
       },
       {
-        "type": "C25M",
-        "reg": "F-HALV",
+        "type": "C525",
+        "reg": "F-HRIB",
         "category": "avion",
         "specs": {
           "cat": "avion",
-          "span": 14.42,
+          "span": 14.3,
           "length": 12.98,
           "mtow": 4.9,
           "mototok": "Non renseigné",
